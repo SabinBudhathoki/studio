@@ -1,7 +1,9 @@
+
 import type { Transaction } from '@/lib/types';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
-import { ShoppingBag, TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface TransactionListItemProps {
   transaction: Transaction;
@@ -12,13 +14,25 @@ const TransactionListItem: React.FC<TransactionListItemProps> = ({ transaction }
   const totalAmount = isCredit ? transaction.price * transaction.quantity : transaction.amount ?? 0;
 
   return (
-    <Card className={cn("mb-3 shadow-sm", isCredit ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200")}>
+    <Card 
+      className={cn(
+        "mb-3 shadow-sm", 
+        isCredit ? "bg-destructive/5 border-destructive/20" : "bg-accent/20 border-accent/50"
+      )}
+    >
       <CardContent className="p-4">
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              {isCredit ? <TrendingUp className="h-5 w-5 text-red-500" /> : <TrendingDown className="h-5 w-5 text-green-600" />}
-              <h4 className="font-semibold text-lg">
+              {isCredit ? (
+                <TrendingUp className="h-5 w-5 text-destructive" />
+              ) : (
+                <TrendingDown className="h-5 w-5 text-accent-foreground" /> 
+              )}
+              <h4 className={cn(
+                "font-semibold text-lg",
+                isCredit ? "text-destructive" : "text-accent-foreground"
+              )}>
                 {isCredit ? transaction.itemName : 'Payment Received'}
               </h4>
             </div>
@@ -29,7 +43,11 @@ const TransactionListItem: React.FC<TransactionListItemProps> = ({ transaction }
             )}
           </div>
           <div className="text-right">
-            <p className={cn("font-bold text-lg", isCredit ? 'text-red-600' : 'text-green-700')}>
+            <p className={cn(
+                "font-bold text-lg", 
+                isCredit ? 'text-destructive' : 'text-accent-foreground'
+              )}
+            >
               {isCredit ? '-' : '+'} ₹{totalAmount.toFixed(2)}
             </p>
             <p className="text-xs text-muted-foreground">

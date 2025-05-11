@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams }_from 'next/navigation';
+import { useParams } from 'next/navigation';
 import type { Customer, Transaction, NewTransaction, NewPayment } from '@/lib/types';
 import { mockCustomers, calculateBalance } from '@/lib/mockData'; // Will manage this state locally
 import { TransactionForm } from '@/components/TransactionForm';
@@ -11,8 +12,9 @@ import BackButton from '@/components/BackButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, User, Phone, MapPin, Wallet } from 'lucide-react';
+import { AlertTriangle, User, Phone, MapPin, Wallet, ListChecks } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
 
 export default function CustomerDetailPage() {
   const params = useParams();
@@ -106,18 +108,22 @@ export default function CustomerDetailPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center text-muted-foreground">
-            <Phone className="h-5 w-5 mr-3 text-gray-500" />
+            <Phone className="h-5 w-5 mr-3 text-muted-foreground" />
             <span>{customer.phone}</span>
           </div>
           <div className="flex items-start text-muted-foreground">
-            <MapPin className="h-5 w-5 mr-3 mt-1 text-gray-500 shrink-0" />
+            <MapPin className="h-5 w-5 mr-3 mt-1 text-muted-foreground shrink-0" />
             <span>{customer.address}</span>
           </div>
           <Separator className="my-4" />
           <div className="flex items-center font-semibold text-lg">
-            <Wallet className="h-6 w-6 mr-3 text-gray-600" />
+            <Wallet className="h-6 w-6 mr-3 text-muted-foreground" />
             <span>Current Balance: </span>
-            <span className={cn("ml-2", balance >= 0 ? 'text-green-600' : 'text-red-600')}>
+            <span className={cn(
+                "ml-2",
+                balance > 0 ? 'text-accent-foreground' : balance < 0 ? 'text-destructive' : 'text-foreground'
+              )}
+            >
               ₹{Math.abs(balance).toFixed(2)} {balance < 0 ? ' (Due)' : balance > 0 ? ' (Advance)' : ''}
             </span>
           </div>
@@ -131,7 +137,7 @@ export default function CustomerDetailPage() {
 
       <div>
         <h2 className="text-2xl font-semibold mb-4 mt-8 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-list-checks"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
+          <ListChecks className="h-6 w-6" />
           Transaction History
         </h2>
         {transactions.length > 0 ? (
