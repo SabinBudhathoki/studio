@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import type { Customer, Transaction, NewTransaction, NewPayment } from '@/lib/types';
-import { mockCustomers, calculateBalance } from '@/lib/mockData'; // Will manage this state locally
+import { mockCustomers, calculateBalance } from '@/lib/mockData';
 import { TransactionForm } from '@/components/TransactionForm';
 import { PaymentForm } from '@/components/PaymentForm';
 import TransactionListItem from '@/components/TransactionListItem';
@@ -26,15 +26,17 @@ export default function CustomerDetailPage() {
 
   useEffect(() => {
     if (id) {
+      setIsLoading(true);
       // Simulate API call
       setTimeout(() => {
         const foundCustomer = mockCustomers.find((c) => c.id === id);
         if (foundCustomer) {
           setCustomer(foundCustomer);
-          setTransactions(foundCustomer.transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+          // Sort transactions from the mock data for initial display
+          setTransactions([...foundCustomer.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         }
         setIsLoading(false);
-      }, 500);
+      }, 300); // Reduced delay
     }
   }, [id]);
   
@@ -43,27 +45,45 @@ export default function CustomerDetailPage() {
   const handleAddTransaction = async (data: NewTransaction) => {
     const newTx: Transaction = {
       ...data,
-      id: `tx-${Date.now()}`,
+      id: `tx-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       customerId: id,
       type: 'credit',
     };
+
+    // Update local state for immediate UI feedback
     setTransactions(prev => [newTx, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    // In a real app, update mockCustomers or call an API
-     await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
+    
+    // Update the transaction list in the mockCustomers array
+    const customerIndex = mockCustomers.findIndex(c => c.id === id);
+    if (customerIndex !== -1) {
+      mockCustomers[customerIndex].transactions.push(newTx);
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
   };
 
   const handleAddPayment = async (data: NewPayment) => {
-    const newPayment: Transaction = {
-      ...data,
-      id: `payment-${Date.now()}`,
+    const newPaymentTx: Transaction = {
+      id: `payment-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       customerId: id,
       type: 'payment',
-      itemName: 'Payment', // Placeholder
-      quantity: 0,        // Placeholder
-      price: 0            // Placeholder
+      amount: data.amount,
+      date: data.date,
+      // Placeholder fields to satisfy Transaction interface for 'payment' type
+      itemName: 'Payment Received', 
+      quantity: 1, // Or 0, as long as price * quantity is not used for payments
+      price: 0,    // Price is 0 for payments
     };
-    setTransactions(prev => [newPayment, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    // In a real app, update mockCustomers or call an API
+
+    // Update local state for immediate UI feedback
+    setTransactions(prev => [newPaymentTx, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+
+    // Update the transaction list in the mockCustomers array
+    const customerIndex = mockCustomers.findIndex(c => c.id === id);
+    if (customerIndex !== -1) {
+      mockCustomers[customerIndex].transactions.push(newPaymentTx);
+    }
+    
     await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
   };
 
@@ -120,7 +140,7 @@ export default function CustomerDetailPage() {
             <Wallet className="h-6 w-6 mr-3 text-muted-foreground" />
             <span>Current Balance: </span>
             <span className={cn(
-                "ml-2",
+                "ml-2 font-medium", // Added font-medium for consistency
                 balance > 0 ? 'text-accent-foreground' : balance < 0 ? 'text-destructive' : 'text-foreground'
               )}
             >
@@ -151,7 +171,7 @@ export default function CustomerDetailPage() {
             <AlertTriangle className="h-5 w-5 text-accent-foreground" />
             <AlertTitle className="font-semibold">No Transactions Yet</AlertTitle>
             <AlertDescription>
-              This customer has no transactions or payments recorded.
+              This customer has no transactions or payments recorded. Add one using the forms above.
             </AlertDescription>
           </Alert>
         )}

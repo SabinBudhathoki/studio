@@ -13,12 +13,16 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate API call
+    // Simulate API call to load customers
+    // This will run when the component mounts. If mockCustomers has been updated
+    // by another page (e.g., NewCustomerPage), this will reflect those changes
+    // assuming HomePage remounts or this effect is otherwise triggered appropriately by navigation.
+    setIsLoading(true);
     setTimeout(() => {
-      setCustomers(mockCustomers);
+      setCustomers([...mockCustomers]); // Use spread to ensure a new array reference
       setIsLoading(false);
-    }, 500);
-  }, []);
+    }, 100); // Reduced delay for quicker visual feedback
+  }, []); // Empty dependency array means this runs once on mount.
 
   const filteredCustomers = useMemo(() => {
     if (!searchTerm) return customers;
@@ -34,7 +38,7 @@ export default function HomePage() {
       <div className="space-y-6">
         <Skeleton className="h-12 w-full" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3, 4, 5].map((i) => ( // Adjusted skeleton count for potentially more customers
             <Skeleton key={i} className="h-60 rounded-lg" />
           ))}
         </div>
