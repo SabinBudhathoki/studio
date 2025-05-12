@@ -64,10 +64,12 @@ export async function ensureSheetExists(sheetTitle: string, headers: string[]) {
   const sheets = getSheetsClient();
   if (!sheets || !SPREADSHEET_ID) {
       console.error("Cannot ensure sheet exists: Google Sheets client not initialized or SPREADSHEET_ID missing.");
-      return; // Exit if client/ID isn't available
+      // Don't throw here, let the calling function handle the null client
+      return;
   }
 
   console.log(`Ensuring sheet "${sheetTitle}" with headers: ${headers.join(', ')} exists in spreadsheet ID: ${SPREADSHEET_ID}`);
+  console.log(`Using Service Account: ${credentialsJson?.client_email}`); // Log the email being used
 
   try {
     const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
@@ -121,25 +123,44 @@ export async function ensureSheetExists(sheetTitle: string, headers: string[]) {
       }
     }
   } catch (error: any) {
-    console.error(`Error ensuring sheet "${sheetTitle}" exists or adding headers:`, error.message);
+    // Log more detailed error information
+    console.error(`Error ensuring sheet "${sheetTitle}" exists or adding headers:`);
+    console.error(`  Message: ${error.message}`);
+    if (error.code) {
+      console.error(`  Google API Error Code: ${error.code}`);
+    }
+    if (error.errors) {
+      console.error(`  Google API Errors: ${JSON.stringify(error.errors)}`);
+    }
+    if (error.response?.data?.error) {
+         console.error("  Google API Response Error Details:", JSON.stringify(error.response.data.error));
+    }
+
      if (error.code === 403) {
-       console.error("Permission denied. Ensure the service account email has 'Editor' access to the Google Sheet ID specified in .env.local. Service Account Email:", credentialsJson?.client_email);
+       console.error("  Hint: Permission denied. Ensure the service account email has 'Editor' access to the Google Sheet.");
+       console.error(`  Service Account Email: ${credentialsJson?.client_email}`);
+       console.error(`  Spreadsheet ID: ${SPREADSHEET_ID}`);
      } else if (error.code === 404) {
-       console.error("Spreadsheet not found. Check GOOGLE_SHEET_ID in .env.local:", SPREADSHEET_ID);
-     } else if (error.response?.data?.error?.message) {
-         console.error("Google API Error:", error.response.data.error.message);
-     } else {
-       console.error("An unexpected error occurred:", error);
+       console.error("  Hint: Spreadsheet not found. Verify the GOOGLE_SHEET_ID in .env.local.");
+        console.error(`  Provided Spreadsheet ID: ${SPREADSHEET_ID}`);
      }
-     // Re-throw the error so calling functions know something went wrong
-     throw new Error(`Failed to ensure sheet "${sheetTitle}" structure.`);
+     // Re-throw a more specific error
+     throw new Error(`Failed to ensure sheet "${sheetTitle}" structure. Reason: ${error.message || 'Unknown error'}`);
   }
 }
 
-// Ensure sheets and headers exist on module load if in a server environment
-// This runs when the server starts or the module is first imported in a server context.
-if (typeof window === 'undefined') { // Ensure this runs only server-side
-  (async () => {
+// Debounced function to prevent rapid calls during hot-reloading
+let initCheckTimeout: NodeJS.Timeout | null = null;
+function debounce(func: () => Promise<void>, wait: number) {
+    return () => {
+        if (initCheckTimeout) {
+            clearTimeout(initCheckTimeout);
+        }
+        initCheckTimeout = setTimeout(func, wait);
+    };
+}
+
+const performInitialSheetCheck = async () => {
     // Check for essential variables before proceeding
     if (SPREADSHEET_ID && credentialsJson?.client_email && credentialsJson?.private_key) {
         console.log("Initializing Google Sheets structure check...");
@@ -147,13 +168,21 @@ if (typeof window === 'undefined') { // Ensure this runs only server-side
             await ensureSheetExists(CUSTOMER_SHEET_NAME, CUSTOMER_HEADERS);
             await ensureSheetExists(TRANSACTION_SHEET_NAME, TRANSACTION_HEADERS);
             console.log("Google Sheets structure check complete.");
-        } catch (initError) {
-            console.error("Failed during initial Google Sheets structure setup:", initError);
-            // Depending on the desired behavior, you might want to prevent the app from starting fully here.
-            // For now, we just log the error.
+        } catch (initError: any) {
+            console.error("Failed during initial Google Sheets structure setup:", initError.message);
+            // Log the underlying error if available
+            if (initError.cause) {
+              console.error("Underlying cause:", initError.cause);
+            }
         }
     } else {
       console.warn("Skipping Google Sheet structure check due to missing SPREADSHEET_ID or essential credentials.");
     }
-  })();
+};
+
+// Ensure sheets and headers exist on module load if in a server environment
+// Use debounce to avoid rapid calls during development hot-reloads
+if (typeof window === 'undefined') { // Ensure this runs only server-side
+    const debouncedCheck = debounce(performInitialSheetCheck, 1000); // Wait 1 second
+    debouncedCheck();
 }

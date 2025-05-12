@@ -1,9 +1,9 @@
 
 'use server';
 import type { Customer, NewCustomer, Transaction, NewTransaction, NewPayment } from '@/lib/types';
-import { 
-  getSheetsClient, 
-  SPREADSHEET_ID, 
+import {
+  getSheetsClient,
+  SPREADSHEET_ID,
   CUSTOMER_SHEET_NAME,
   CUSTOMER_RANGE,
   TRANSACTION_SHEET_NAME,
@@ -25,7 +25,7 @@ function rowToCustomer(row: any[]): Customer | null {
 }
 
 function rowToTransaction(row: any[]): Transaction | null {
-  if (!row || row.length < 8) return null; 
+  if (!row || row.length < 8) return null;
   // TransactionID, CustomerID, ItemName, Quantity, Price, Date, Type, Amount
   return {
     id: row[0],
@@ -39,23 +39,42 @@ function rowToTransaction(row: any[]): Transaction | null {
   };
 }
 
+// Helper function to log detailed errors
+function logSheetError(operation: string, error: any, context = {}) {
+    console.error(`Error during Google Sheet operation: ${operation}`);
+    if (Object.keys(context).length > 0) {
+      console.error(`  Context: ${JSON.stringify(context)}`);
+    }
+    console.error(`  Message: ${error.message}`);
+    if (error.code) {
+      console.error(`  Google API Error Code: ${error.code}`);
+    }
+    if (error.errors) {
+      console.error(`  Google API Errors: ${JSON.stringify(error.errors)}`);
+    }
+     if (error.response?.data?.error) {
+         console.error("  Google API Response Error Details:", JSON.stringify(error.response.data.error));
+    }
+
+     if (error.code === 403) {
+       console.error("  Hint: Permission denied. Ensure the service account email has 'Editor' access to the Google Sheet and the API is enabled.");
+     } else if (error.code === 404) {
+       console.error("  Hint: Spreadsheet or Sheet not found. Verify GOOGLE_SHEET_ID and sheet names.");
+     } else if (error.code === 400 && error.message?.includes('Unable to parse range')) {
+       console.error("  Hint: Invalid sheet name or range specified.");
+     }
+}
+
 
 export async function getCustomersFromSheet(): Promise<Customer[]> {
   if (!sheets || !SPREADSHEET_ID) {
-    console.error("Google Sheets client not initialized or SPREADSHEET_ID missing.");
-    if (process.env.NODE_ENV === 'development') {
-        // In dev, it's helpful to know if mock data would be returned, but we must signal an error
-        // throw new Error("Sheets client error in dev, cannot fetch customers."); 
-        // For now, let's return empty to avoid breaking UI completely, but log error
-        console.error("Returning empty customer list due to Sheets client issue.");
-        return [];
-    }
-    throw new Error('Could not connect to Google Sheets to fetch customers.');
+    console.error("getCustomersFromSheet: Google Sheets client not initialized or SPREADSHEET_ID missing.");
+    throw new Error('Google Sheets connection is not configured.');
   }
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: CUSTOMER_RANGE, // Read the whole sheet, skip header if any
+      range: CUSTOMER_RANGE,
     });
     const rows = response.data.values;
     if (rows && rows.length > 0) {
@@ -63,23 +82,25 @@ export async function getCustomersFromSheet(): Promise<Customer[]> {
       return rows.slice(1).map(row => rowToCustomer(row)).filter(Boolean) as Customer[];
     }
     return [];
-  } catch (error) {
-    console.error('Error fetching customers from Google Sheet:', error);
-    // Provide a more user-friendly error message or re-throw a custom error
-    throw new Error('Could not load customer data. Please ensure the Google Sheet is accessible, correctly configured in your .env.local, and shared with the service account email.');
+  } catch (error: any) {
+    logSheetError('Fetching Customers', error, { range: CUSTOMER_RANGE });
+    throw new Error(`Could not load customer data. ${error.message || 'Ensure Google Sheet is accessible and configured.'}`);
   }
 }
 
 export async function addCustomerToSheet(data: NewCustomer): Promise<Customer> {
-  if (!sheets || !SPREADSHEET_ID) throw new Error('Google Sheets client not initialized.');
-  
+  if (!sheets || !SPREADSHEET_ID) {
+     console.error("addCustomerToSheet: Google Sheets client not initialized or SPREADSHEET_ID missing.");
+     throw new Error('Google Sheets connection is not configured.');
+  }
+
   const newId = `customer-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   const newCustomer: Customer = { ...data, id: newId, transactions: [] };
 
   try {
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: CUSTOMER_SHEET_NAME, // Append to the sheet, not a specific range, to add a new row
+      range: CUSTOMER_SHEET_NAME, // Append to the sheet, not a specific range
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [[newCustomer.id, newCustomer.name, newCustomer.phone, newCustomer.address]],
@@ -87,15 +108,19 @@ export async function addCustomerToSheet(data: NewCustomer): Promise<Customer> {
     });
     revalidatePath('/');
     revalidatePath('/new-customer');
+    console.log(`Successfully added customer ${newCustomer.id} to sheet ${CUSTOMER_SHEET_NAME}`);
     return newCustomer;
-  } catch (error) {
-    console.error('Error adding customer to Google Sheet:', error);
-    throw new Error('Failed to add customer to Google Sheet.');
+  } catch (error: any) {
+    logSheetError('Adding Customer', error, { customerName: data.name, sheet: CUSTOMER_SHEET_NAME });
+    throw new Error(`Failed to add customer. ${error.message || 'Check sheet permissions and configuration.'}`);
   }
 }
 
 export async function getCustomerByIdFromSheet(id: string): Promise<Customer | null> {
-  if (!sheets || !SPREADSHEET_ID) throw new Error('Google Sheets client not initialized.');
+  if (!sheets || !SPREADSHEET_ID) {
+    console.error("getCustomerByIdFromSheet: Google Sheets client not initialized or SPREADSHEET_ID missing.");
+    throw new Error('Google Sheets connection is not configured.');
+  }
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
@@ -109,14 +134,17 @@ export async function getCustomerByIdFromSheet(id: string): Promise<Customer | n
       }
     }
     return null;
-  } catch (error) {
-    console.error(`Error fetching customer ${id} from Google Sheet:`, error);
-    throw new Error('Failed to fetch customer details from Google Sheet.');
+  } catch (error: any) {
+    logSheetError('Fetching Customer by ID', error, { customerId: id, range: CUSTOMER_RANGE });
+    throw new Error(`Failed to fetch customer details. ${error.message || 'Check sheet access.'}`);
   }
 }
 
 export async function getTransactionsForCustomerFromSheet(customerId: string): Promise<Transaction[]> {
-  if (!sheets || !SPREADSHEET_ID) throw new Error('Google Sheets client not initialized.');
+  if (!sheets || !SPREADSHEET_ID) {
+      console.error("getTransactionsForCustomerFromSheet: Google Sheets client not initialized or SPREADSHEET_ID missing.");
+      throw new Error('Google Sheets connection is not configured.');
+  }
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
@@ -126,20 +154,23 @@ export async function getTransactionsForCustomerFromSheet(customerId: string): P
     if (rows && rows.length > 0) {
       return rows
         .slice(1) // Skip header
-        .filter(row => row[1] === customerId) // Filter by customerId (column B)
+        .filter(row => row && row.length > 1 && row[1] === customerId) // Filter by customerId (column B), ensure row is valid
         .map(row => rowToTransaction(row))
         .filter(Boolean) as Transaction[];
     }
     return [];
-  } catch (error) {
-    console.error(`Error fetching transactions for customer ${customerId} from Google Sheet:`, error);
-    throw new Error('Failed to fetch transactions from Google Sheet.');
+  } catch (error: any) {
+     logSheetError('Fetching Transactions', error, { customerId: customerId, range: TRANSACTION_RANGE });
+     throw new Error(`Failed to fetch transactions. ${error.message || 'Check sheet access.'}`);
   }
 }
 
 export async function addTransactionToSheetService(customerId: string, data: NewTransaction): Promise<Transaction> {
-  if (!sheets || !SPREADSHEET_ID) throw new Error('Google Sheets client not initialized.');
-  
+  if (!sheets || !SPREADSHEET_ID) {
+      console.error("addTransactionToSheetService: Google Sheets client not initialized or SPREADSHEET_ID missing.");
+      throw new Error('Google Sheets connection is not configured.');
+  }
+
   const newTxId = `tx-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   const newTx: Transaction = {
     ...data,
@@ -158,15 +189,19 @@ export async function addTransactionToSheetService(customerId: string, data: New
       },
     });
     revalidatePath(`/customers/${customerId}`);
+    console.log(`Successfully added transaction ${newTx.id} for customer ${customerId} to sheet ${TRANSACTION_SHEET_NAME}`);
     return newTx;
-  } catch (error) {
-    console.error('Error adding transaction to Google Sheet:', error);
-    throw new Error('Failed to add transaction to Google Sheet.');
+  } catch (error: any) {
+    logSheetError('Adding Transaction', error, { customerId: customerId, itemName: data.itemName, sheet: TRANSACTION_SHEET_NAME });
+    throw new Error(`Failed to add transaction. ${error.message || 'Check sheet permissions.'}`);
   }
 }
 
 export async function addPaymentToSheetService(customerId: string, data: NewPayment): Promise<Transaction> {
-  if (!sheets || !SPREADSHEET_ID) throw new Error('Google Sheets client not initialized.');
+   if (!sheets || !SPREADSHEET_ID) {
+      console.error("addPaymentToSheetService: Google Sheets client not initialized or SPREADSHEET_ID missing.");
+      throw new Error('Google Sheets connection is not configured.');
+  }
 
   const newPaymentId = `payment-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   const newPaymentTx: Transaction = {
@@ -175,9 +210,9 @@ export async function addPaymentToSheetService(customerId: string, data: NewPaym
     type: 'payment',
     amount: data.amount,
     date: data.date,
-    itemName: 'Payment Received', 
-    quantity: 1, 
-    price: 0,    
+    itemName: 'Payment Received',
+    quantity: 1,
+    price: 0,
   };
 
   try {
@@ -190,9 +225,10 @@ export async function addPaymentToSheetService(customerId: string, data: NewPaym
       },
     });
     revalidatePath(`/customers/${customerId}`);
+     console.log(`Successfully added payment ${newPaymentTx.id} for customer ${customerId} to sheet ${TRANSACTION_SHEET_NAME}`);
     return newPaymentTx;
-  } catch (error) {
-    console.error('Error adding payment to Google Sheet:', error);
-    throw new Error('Failed to add payment to Google Sheet.');
+  } catch (error: any) {
+    logSheetError('Adding Payment', error, { customerId: customerId, amount: data.amount, sheet: TRANSACTION_SHEET_NAME });
+    throw new Error(`Failed to add payment. ${error.message || 'Check sheet permissions.'}`);
   }
 }
