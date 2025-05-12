@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import type { Customer, Transaction, NewTransaction, NewPayment } from '@/lib/types';
-import { mockCustomers, calculateBalance } from '@/lib/mockData';
+import { calculateBalance } from '@/lib/mockData'; // calculateBalance can still be used client-side
 import { TransactionForm } from '@/components/TransactionForm';
 import { PaymentForm } from '@/components/PaymentForm';
 import TransactionListItem from '@/components/TransactionListItem';
@@ -15,96 +15,142 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, User, Phone, MapPin, Wallet, ListChecks } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
+import { 
+  getCustomerByIdFromSheet, 
+  getTransactionsForCustomerFromSheet,
+  addTransactionToSheetService,
+  addPaymentToSheetService
+} from '@/services/customerService'; // Import server functions
+import { useToast } from '@/hooks/use-toast';
+
+
+// Server Action to fetch customer details
+async function fetchCustomerDetailsAction(id: string): Promise<Customer | null> {
+  'use server';
+  return getCustomerByIdFromSheet(id);
+}
+
+// Server Action to fetch transactions
+async function fetchCustomerTransactionsAction(id: string): Promise<Transaction[]> {
+  'use server';
+  return getTransactionsForCustomerFromSheet(id);
+}
+
+// Server Action for adding a transaction
+async function handleAddTransactionAction(customerId: string, data: NewTransaction): Promise<{ success: boolean; message: string; newTransaction?: Transaction }> {
+  'use server';
+  try {
+    const newTx = await addTransactionToSheetService(customerId, data);
+    return { success: true, message: `Credit for ${data.itemName} added.`, newTransaction: newTx };
+  } catch (error: any) {
+    return { success: false, message: error.message || 'Failed to record transaction.' };
+  }
+}
+
+// Server Action for adding a payment
+async function handleAddPaymentAction(customerId: string, data: NewPayment): Promise<{ success: boolean; message: string; newPayment?: Transaction }> {
+  'use server';
+  try {
+    const newPay = await addPaymentToSheetService(customerId, data);
+    return { success: true, message: `Payment of ₹${data.amount} added.`, newPayment: newPay };
+  } catch (error: any) {
+    return { success: false, message: error.message || 'Failed to record payment.' };
+  }
+}
+
 
 export default function CustomerDetailPage() {
   const params = useParams();
   const id = params.id as string;
+  const { toast } = useToast();
   
   const [customer, setCustomer] = useState<Customer | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
       setIsLoading(true);
-      // Simulate API call
-      setTimeout(() => {
-        const foundCustomer = mockCustomers.find((c) => c.id === id);
-        if (foundCustomer) {
-          setCustomer(foundCustomer);
-          // Sort transactions from the mock data for initial display
-          setTransactions([...foundCustomer.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      setError(null);
+      const fetchData = async () => {
+        try {
+          const [customerData, transactionsData] = await Promise.all([
+            fetchCustomerDetailsAction(id),
+            fetchCustomerTransactionsAction(id)
+          ]);
+
+          if (customerData) {
+            setCustomer(customerData);
+            setTransactions(transactionsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+          } else {
+            setError('Customer not found.');
+          }
+        } catch (err: any) {
+          console.error("Error fetching customer data:", err);
+          setError(err.message || 'Failed to load customer details.');
+        } finally {
+          setIsLoading(false);
         }
-        setIsLoading(false);
-      }, 300); // Reduced delay
+      };
+      fetchData();
     }
   }, [id]);
   
   const balance = customer ? calculateBalance(transactions) : 0;
 
   const handleAddTransaction = async (data: NewTransaction) => {
-    const newTx: Transaction = {
-      ...data,
-      id: `tx-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      customerId: id,
-      type: 'credit',
-    };
-
-    // Update local state for immediate UI feedback
-    setTransactions(prev => [newTx, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    
-    // Update the transaction list in the mockCustomers array
-    const customerIndex = mockCustomers.findIndex(c => c.id === id);
-    if (customerIndex !== -1) {
-      mockCustomers[customerIndex].transactions.push(newTx);
+    const result = await handleAddTransactionAction(id, data);
+    if (result.success && result.newTransaction) {
+      setTransactions(prev => [result.newTransaction!, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      toast({ title: 'Success', description: result.message });
+    } else {
+      toast({ title: 'Error', description: result.message, variant: 'destructive' });
+      throw new Error(result.message); // To signal error to the form
     }
-    
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
   };
 
   const handleAddPayment = async (data: NewPayment) => {
-    const newPaymentTx: Transaction = {
-      id: `payment-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      customerId: id,
-      type: 'payment',
-      amount: data.amount,
-      date: data.date,
-      // Placeholder fields to satisfy Transaction interface for 'payment' type
-      itemName: 'Payment Received', 
-      quantity: 1, // Or 0, as long as price * quantity is not used for payments
-      price: 0,    // Price is 0 for payments
-    };
-
-    // Update local state for immediate UI feedback
-    setTransactions(prev => [newPaymentTx, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-
-    // Update the transaction list in the mockCustomers array
-    const customerIndex = mockCustomers.findIndex(c => c.id === id);
-    if (customerIndex !== -1) {
-      mockCustomers[customerIndex].transactions.push(newPaymentTx);
+    const result = await handleAddPaymentAction(id, data);
+     if (result.success && result.newPayment) {
+      setTransactions(prev => [result.newPayment!, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      toast({ title: 'Success', description: result.message });
+    } else {
+      toast({ title: 'Error', description: result.message, variant: 'destructive' });
+      throw new Error(result.message); // To signal error to the form
     }
-    
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
   };
 
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <Skeleton className="h-10 w-24" /> {/* Back button skeleton */}
-        <Skeleton className="h-40 w-full rounded-lg" /> {/* Customer info card skeleton */}
+        <Skeleton className="h-10 w-24" />
+        <Skeleton className="h-40 w-full rounded-lg" />
         <div className="grid md:grid-cols-2 gap-6">
-          <Skeleton className="h-96 w-full rounded-lg" /> {/* Transaction form skeleton */}
-          <Skeleton className="h-80 w-full rounded-lg" /> {/* Payment form skeleton */}
+          <Skeleton className="h-96 w-full rounded-lg" />
+          <Skeleton className="h-80 w-full rounded-lg" />
         </div>
-        <Skeleton className="h-12 w-full rounded-lg mt-4" /> {/* Transaction list header skeleton */}
-        <Skeleton className="h-20 w-full rounded-lg" />
+        <Skeleton className="h-12 w-full rounded-lg mt-4" />
         <Skeleton className="h-20 w-full rounded-lg" />
       </div>
     );
   }
 
-  if (!customer) {
+  if (error) {
     return (
+      <div>
+        <BackButton />
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+  
+  if (!customer) {
+     return (
       <div>
         <BackButton />
         <Alert variant="destructive">
@@ -115,6 +161,7 @@ export default function CustomerDetailPage() {
       </div>
     );
   }
+
 
   return (
     <div className="space-y-8">
@@ -140,7 +187,7 @@ export default function CustomerDetailPage() {
             <Wallet className="h-6 w-6 mr-3 text-muted-foreground" />
             <span>Current Balance: </span>
             <span className={cn(
-                "ml-2 font-medium", // Added font-medium for consistency
+                "ml-2 font-medium", 
                 balance > 0 ? 'text-accent-foreground' : balance < 0 ? 'text-destructive' : 'text-foreground'
               )}
             >

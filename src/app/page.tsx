@@ -1,55 +1,39 @@
-'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import type { Customer } from '@/lib/types';
-import { mockCustomers } from '@/lib/mockData';
-import CustomerSearch from '@/components/CustomerSearch';
-import CustomerList from '@/components/CustomerList';
-import { Skeleton } from '@/components/ui/skeleton';
+import { getCustomersFromSheet } from '@/services/customerService';
+import CustomerClientPage from '@/components/CustomerClientPage'; // New client component
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
-export default function HomePage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+// This is now a Server Component
+export default async function HomePage() {
+  let customers = [];
+  let errorLoadingCustomers = null;
 
-  useEffect(() => {
-    // Simulate API call to load customers
-    // This will run when the component mounts. If mockCustomers has been updated
-    // by another page (e.g., NewCustomerPage), this will reflect those changes
-    // assuming HomePage remounts or this effect is otherwise triggered appropriately by navigation.
-    setIsLoading(true);
-    setTimeout(() => {
-      setCustomers([...mockCustomers]); // Use spread to ensure a new array reference
-      setIsLoading(false);
-    }, 100); // Reduced delay for quicker visual feedback
-  }, []); // Empty dependency array means this runs once on mount.
+  try {
+    customers = await getCustomersFromSheet();
+  } catch (error: any) {
+    console.error("Error in HomePage fetching customers:", error);
+    errorLoadingCustomers = error.message || "An unexpected error occurred.";
+     // In case of error, customers will remain an empty array, 
+     // and CustomerClientPage will display its "no customers" message
+     // or we can display a more specific error message here.
+  }
 
-  const filteredCustomers = useMemo(() => {
-    if (!searchTerm) return customers;
-    return customers.filter(
-      (customer) =>
-        customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.phone.includes(searchTerm)
-    );
-  }, [customers, searchTerm]);
-
-  if (isLoading) {
+  if (errorLoadingCustomers) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-12 w-full" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5].map((i) => ( // Adjusted skeleton count for potentially more customers
-            <Skeleton key={i} className="h-60 rounded-lg" />
-          ))}
-        </div>
+      <div className="space-y-8">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error Loading Customers</AlertTitle>
+          <AlertDescription>{errorLoadingCustomers}</AlertDescription>
+        </Alert>
       </div>
     );
   }
 
   return (
     <div className="space-y-8">
-      <CustomerSearch searchTerm={searchTerm} onSearchChange={setSearchTerm} />
-      <CustomerList customers={filteredCustomers} />
+      <CustomerClientPage initialCustomers={customers} />
     </div>
   );
 }
