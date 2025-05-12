@@ -18,44 +18,26 @@ import { cn } from '@/lib/utils';
 import { 
   getCustomerByIdFromSheet, 
   getTransactionsForCustomerFromSheet,
-  addTransactionToSheetService,
-  addPaymentToSheetService
-} from '@/services/customerService'; // Import server functions
+} from '@/services/customerService'; // Import only data fetching service functions
+import { 
+  handleAddTransactionAction, 
+  handleAddPaymentAction 
+} from '@/actions/customerActions'; // Import server actions
 import { useToast } from '@/hooks/use-toast';
 
 
-// Server Action to fetch customer details
+// Server Action to fetch customer details (can remain inline or be moved, kept for now)
 async function fetchCustomerDetailsAction(id: string): Promise<Customer | null> {
   'use server';
-  return getCustomerByIdFromSheet(id);
+  // Need to fetch transactions to populate the customer object if using this approach
+  // Simpler to just fetch them separately in the useEffect
+   return getCustomerByIdFromSheet(id); // Fetches basic details
 }
 
-// Server Action to fetch transactions
+// Server Action to fetch transactions (can remain inline or be moved, kept for now)
 async function fetchCustomerTransactionsAction(id: string): Promise<Transaction[]> {
   'use server';
   return getTransactionsForCustomerFromSheet(id);
-}
-
-// Server Action for adding a transaction
-async function handleAddTransactionAction(customerId: string, data: NewTransaction): Promise<{ success: boolean; message: string; newTransaction?: Transaction }> {
-  'use server';
-  try {
-    const newTx = await addTransactionToSheetService(customerId, data);
-    return { success: true, message: `Credit for ${data.itemName} added.`, newTransaction: newTx };
-  } catch (error: any) {
-    return { success: false, message: error.message || 'Failed to record transaction.' };
-  }
-}
-
-// Server Action for adding a payment
-async function handleAddPaymentAction(customerId: string, data: NewPayment): Promise<{ success: boolean; message: string; newPayment?: Transaction }> {
-  'use server';
-  try {
-    const newPay = await addPaymentToSheetService(customerId, data);
-    return { success: true, message: `Payment of ₹${data.amount} added.`, newPayment: newPay };
-  } catch (error: any) {
-    return { success: false, message: error.message || 'Failed to record payment.' };
-  }
 }
 
 
@@ -75,10 +57,9 @@ export default function CustomerDetailPage() {
       setError(null);
       const fetchData = async () => {
         try {
-          const [customerData, transactionsData] = await Promise.all([
-            fetchCustomerDetailsAction(id),
-            fetchCustomerTransactionsAction(id)
-          ]);
+          // Fetch customer details and transactions separately
+          const customerData = await fetchCustomerDetailsAction(id);
+          const transactionsData = await fetchCustomerTransactionsAction(id);
 
           if (customerData) {
             setCustomer(customerData);
@@ -99,8 +80,9 @@ export default function CustomerDetailPage() {
   
   const balance = customer ? calculateBalance(transactions) : 0;
 
+  // Use the imported Server Action
   const handleAddTransaction = async (data: NewTransaction) => {
-    const result = await handleAddTransactionAction(id, data);
+    const result = await handleAddTransactionAction(id, data); // Call imported action
     if (result.success && result.newTransaction) {
       setTransactions(prev => [result.newTransaction!, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       toast({ title: 'Success', description: result.message });
@@ -110,8 +92,9 @@ export default function CustomerDetailPage() {
     }
   };
 
+  // Use the imported Server Action
   const handleAddPayment = async (data: NewPayment) => {
-    const result = await handleAddPaymentAction(id, data);
+    const result = await handleAddPaymentAction(id, data); // Call imported action
      if (result.success && result.newPayment) {
       setTransactions(prev => [result.newPayment!, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       toast({ title: 'Success', description: result.message });
@@ -188,7 +171,7 @@ export default function CustomerDetailPage() {
             <span>Current Balance: </span>
             <span className={cn(
                 "ml-2 font-medium", 
-                balance > 0 ? 'text-accent-foreground' : balance < 0 ? 'text-destructive' : 'text-foreground'
+                balance < 0 ? 'text-destructive' : balance > 0 ? 'text-accent-foreground' : 'text-foreground' // Adjusted logic: negative is due
               )}
             >
               ₹{Math.abs(balance).toFixed(2)} {balance < 0 ? ' (Due)' : balance > 0 ? ' (Advance)' : ''}
