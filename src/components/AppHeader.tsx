@@ -12,12 +12,12 @@ const AppHeader = () => {
         <nav className="flex items-center gap-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="default" size="sm">
+              <Button variant="default" size="lg"> {/* Changed size to lg */}
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add Customer
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="shadow-xl"> {/* Added shadow for better depth */}
               <DropdownMenuItem asChild>
                 <Link href="/new-customer">
                   <User className="mr-2 h-4 w-4" />

@@ -57,7 +57,7 @@ export function PaymentForm({ customerId, onSubmit }: PaymentFormProps) {
   }
 
   return (
-    <Card className="shadow-lg">
+    <Card className="shadow-xl"> {/* Changed shadow-lg to shadow-xl for consistency */}
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl text-primary">
           <DollarSign className="h-6 w-6" />

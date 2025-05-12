@@ -60,7 +60,7 @@ export function TransactionForm({ customerId, onSubmit }: TransactionFormProps) 
   }
 
   return (
-    <Card className="shadow-lg">
+    <Card className="shadow-xl"> {/* Changed shadow-lg to shadow-xl for consistency */}
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl text-primary">
           <CreditCard className="h-6 w-6" />
