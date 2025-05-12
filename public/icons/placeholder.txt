@@ -1,0 +1,14 @@
+
+This directory should contain the PWA icons referenced in public/manifest.json.
+
+Please create the following icon files (and potentially others specified in the manifest):
+- icon-72x72.png
+- icon-96x96.png
+- icon-128x128.png
+- icon-144x144.png
+- icon-152x152.png
+- icon-192x192.png
+- icon-384x384.png
+- icon-512x512.png
+
+These are required for the Progressive Web App (PWA) functionality, allowing users to "install" the app to their home screen. You can use online icon generators to create these from a base image.
