@@ -2,33 +2,49 @@
 import { google } from 'googleapis';
 import type { JWT } from 'google-auth-library';
 
+// Ensure dotenv is configured to load environment variables
+import dotenv from 'dotenv';
+dotenv.config();
+
+
 const CREDENTIALS_JSON_STRING = process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS;
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
 
 if (!SPREADSHEET_ID) {
-  throw new Error('Missing GOOGLE_SHEET_ID environment variable.');
+  console.error('Missing GOOGLE_SHEET_ID environment variable.');
+  // Avoid throwing here, let functions handle the missing ID
 }
 if (!CREDENTIALS_JSON_STRING) {
-  throw new Error(
-    'Missing GOOGLE_SERVICE_ACCOUNT_CREDENTIALS environment variable.'
-  );
+  console.error('Missing GOOGLE_SERVICE_ACCOUNT_CREDENTIALS environment variable.');
+   // Avoid throwing here, let functions handle the missing credentials
 }
 
-let credentialsJson;
-try {
-  credentialsJson = JSON.parse(CREDENTIALS_JSON_STRING);
-} catch (error) {
-  console.error('Failed to parse GOOGLE_SERVICE_ACCOUNT_CREDENTIALS:', error);
-  throw new Error('Invalid GOOGLE_SERVICE_ACCOUNT_CREDENTIALS format.');
+let credentialsJson: any;
+if (CREDENTIALS_JSON_STRING) {
+    try {
+      credentialsJson = JSON.parse(CREDENTIALS_JSON_STRING);
+      // Validate essential credential fields
+      if (!credentialsJson || !credentialsJson.client_email || !credentialsJson.private_key) {
+          console.error('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS JSON is missing required fields (client_email, private_key). Setting credentialsJson to null.');
+          credentialsJson = null; // Mark as invalid
+      }
+    } catch (error) {
+      console.error('Failed to parse GOOGLE_SERVICE_ACCOUNT_CREDENTIALS:', error);
+       credentialsJson = null; // Mark as invalid
+    }
+} else {
+    credentialsJson = null; // Mark as missing/invalid
 }
 
-// Validate essential credential fields
-if (!credentialsJson || !credentialsJson.client_email || !credentialsJson.private_key) {
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS JSON is missing required fields (client_email, private_key).');
-}
 
+// Make getSheetsClient async to await auth.getClient()
+export const getSheetsClient = async (): Promise<typeof google.sheets | null> => {
+  // Check if essential variables are present before attempting auth
+  if (!SPREADSHEET_ID || !credentialsJson) {
+     console.error("Cannot create Google Sheets client: Missing SPREADSHEET_ID or invalid/missing GOOGLE_SERVICE_ACCOUNT_CREDENTIALS.");
+     return null;
+  }
 
-export const getSheetsClient = (): typeof google.sheets | null => {
   try {
     const auth = new google.auth.GoogleAuth({
       credentials: {
@@ -38,11 +54,11 @@ export const getSheetsClient = (): typeof google.sheets | null => {
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
-    const authClient = auth.getClient() as Promise<JWT>;
+    // Await the client promise
+    const authClient = await auth.getClient() as JWT;
 
-    // Cast to 'any' might be necessary depending on library versions and strictness
-    // but ideally find the correct type or structure if possible.
-    return google.sheets({ version: 'v4', auth: authClient as any });
+    // Pass the resolved auth client
+    return google.sheets({ version: 'v4', auth: authClient });
   } catch (error) {
       console.error("Error creating Google Sheets client:", error);
       return null;
@@ -61,11 +77,12 @@ export const TRANSACTION_HEADERS = ['TransactionID', 'CustomerID', 'ItemName', '
 
 
 export async function ensureSheetExists(sheetTitle: string, headers: string[]) {
-  const sheets = getSheetsClient();
+  // Get the client asynchronously
+  const sheets = await getSheetsClient();
   if (!sheets || !SPREADSHEET_ID) {
-      console.error("Cannot ensure sheet exists: Google Sheets client not initialized or SPREADSHEET_ID missing.");
-      // Don't throw here, let the calling function handle the null client
-      return;
+      console.error(`Cannot ensure sheet "${sheetTitle}" exists: Google Sheets client not initialized or SPREADSHEET_ID missing.`);
+      // Throw an error here because this function is critical for setup
+      throw new Error(`Failed to initialize Google Sheets client for sheet "${sheetTitle}". Check configuration and permissions.`);
   }
 
   console.log(`Ensuring sheet "${sheetTitle}" with headers: ${headers.join(', ')} exists in spreadsheet ID: ${SPREADSHEET_ID}`);
@@ -109,6 +126,18 @@ export async function ensureSheetExists(sheetTitle: string, headers: string[]) {
 
       if (!headersMatch) {
         console.log(`Headers in sheet "${sheetTitle}" are missing or incorrect. Updating headers...`);
+        // Make sure the sheet has at least one row before updating headers if it was empty
+        try {
+          await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: `${sheetTitle}!A1` });
+        } catch (e: any) {
+           if (e.code === 400 && e.message.includes('Unable to parse range')) {
+             // Sheet might be completely empty, append a dummy row first (optional, update usually works)
+             console.log(`Sheet "${sheetTitle}" might be empty. Attempting header update directly.`);
+           } else {
+             throw e; // Re-throw other errors
+           }
+        }
+
         await sheets.spreadsheets.values.update({
           spreadsheetId: SPREADSHEET_ID,
           range: headerRange, // Update the specific header range
@@ -165,6 +194,7 @@ const performInitialSheetCheck = async () => {
     if (SPREADSHEET_ID && credentialsJson?.client_email && credentialsJson?.private_key) {
         console.log("Initializing Google Sheets structure check...");
         try {
+            // No need to await getSheetsClient here, ensureSheetExists does it
             await ensureSheetExists(CUSTOMER_SHEET_NAME, CUSTOMER_HEADERS);
             await ensureSheetExists(TRANSACTION_SHEET_NAME, TRANSACTION_HEADERS);
             console.log("Google Sheets structure check complete.");
@@ -174,6 +204,8 @@ const performInitialSheetCheck = async () => {
             if (initError.cause) {
               console.error("Underlying cause:", initError.cause);
             }
+            // Potentially re-throw or handle critical setup failure
+            // For now, just logging the error. The app might still partially work.
         }
     } else {
       console.warn("Skipping Google Sheet structure check due to missing SPREADSHEET_ID or essential credentials.");
