@@ -15,30 +15,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, User, Phone, MapPin, Wallet, ListChecks } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { 
-  getCustomerByIdFromSheet, 
-  getTransactionsForCustomerFromSheet,
-} from '@/services/customerService'; // Import only data fetching service functions
+// Import server actions from the dedicated actions file
 import { 
   handleAddTransactionAction, 
-  handleAddPaymentAction 
-} from '@/actions/customerActions'; // Import server actions
+  handleAddPaymentAction,
+  fetchCustomerDetailsAction,
+  fetchCustomerTransactionsAction
+} from '@/actions/customerActions'; 
 import { useToast } from '@/hooks/use-toast';
-
-
-// Server Action to fetch customer details (can remain inline or be moved, kept for now)
-async function fetchCustomerDetailsAction(id: string): Promise<Customer | null> {
-  'use server';
-  // Need to fetch transactions to populate the customer object if using this approach
-  // Simpler to just fetch them separately in the useEffect
-   return getCustomerByIdFromSheet(id); // Fetches basic details
-}
-
-// Server Action to fetch transactions (can remain inline or be moved, kept for now)
-async function fetchCustomerTransactionsAction(id: string): Promise<Transaction[]> {
-  'use server';
-  return getTransactionsForCustomerFromSheet(id);
-}
 
 
 export default function CustomerDetailPage() {
@@ -57,7 +41,7 @@ export default function CustomerDetailPage() {
       setError(null);
       const fetchData = async () => {
         try {
-          // Fetch customer details and transactions separately
+          // Fetch customer details and transactions separately using imported actions
           const customerData = await fetchCustomerDetailsAction(id);
           const transactionsData = await fetchCustomerTransactionsAction(id);
 

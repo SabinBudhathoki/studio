@@ -1,11 +1,13 @@
 
 'use server';
 
-import type { NewCustomer, NewTransaction, NewPayment, Transaction } from '@/lib/types';
+import type { NewCustomer, NewTransaction, NewPayment, Transaction, Customer } from '@/lib/types';
 import { 
   addCustomerToSheet, 
   addTransactionToSheetService, 
-  addPaymentToSheetService 
+  addPaymentToSheetService,
+  getCustomerByIdFromSheet,
+  getTransactionsForCustomerFromSheet 
 } from '@/services/customerService'; // Import the service functions
 
 export async function handleAddCustomerAction(data: NewCustomer): Promise<{ success: boolean; message: string }> {
@@ -20,7 +22,7 @@ export async function handleAddCustomerAction(data: NewCustomer): Promise<{ succ
   }
 }
 
-// Server Action for adding a transaction (moved here)
+// Server Action for adding a transaction
 export async function handleAddTransactionAction(customerId: string, data: NewTransaction): Promise<{ success: boolean; message: string; newTransaction?: Transaction }> {
   try {
     const newTx = await addTransactionToSheetService(customerId, data);
@@ -31,7 +33,7 @@ export async function handleAddTransactionAction(customerId: string, data: NewTr
   }
 }
 
-// Server Action for adding a payment (moved here)
+// Server Action for adding a payment
 export async function handleAddPaymentAction(customerId: string, data: NewPayment): Promise<{ success: boolean; message: string; newPayment?: Transaction }> {
   try {
     const newPay = await addPaymentToSheetService(customerId, data);
@@ -39,5 +41,30 @@ export async function handleAddPaymentAction(customerId: string, data: NewPaymen
   } catch (error: any) {
      console.error('Failed to add payment via server action:', error);
     return { success: false, message: error.message || 'Failed to record payment.' };
+  }
+}
+
+// Server Action to fetch customer details
+export async function fetchCustomerDetailsAction(id: string): Promise<Customer | null> {
+  // 'use server' directive is at the top of the file
+  try {
+    return await getCustomerByIdFromSheet(id);
+  } catch (error: any) {
+    console.error(`Error in fetchCustomerDetailsAction for id ${id}:`, error);
+    // Optionally, you can re-throw or return a specific error structure
+    // For now, letting the error propagate or return null as per service
+    throw error; 
+  }
+}
+
+// Server Action to fetch transactions
+export async function fetchCustomerTransactionsAction(id: string): Promise<Transaction[]> {
+  // 'use server' directive is at the top of the file
+  try {
+    return await getTransactionsForCustomerFromSheet(id);
+  } catch (error: any) {
+    console.error(`Error in fetchCustomerTransactionsAction for id ${id}:`, error);
+    // Optionally, re-throw or return empty array / specific error
+    throw error;
   }
 }
