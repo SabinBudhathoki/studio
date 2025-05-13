@@ -1,6 +1,6 @@
 
 import type {NextConfig} from 'next';
-import type { PWAConfig } from 'next-pwa';
+// import type { PWAConfig } from 'next-pwa'; // Not strictly needed if using require
 
 const withPWA = require('next-pwa')({
   dest: 'public', // Destination directory for the PWA files
@@ -14,10 +14,10 @@ const withPWA = require('next-pwa')({
 const nextConfig: NextConfig = {
   /* config options here */
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false, // Changed to false for stricter builds
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false, // Changed to false for stricter builds
   },
   images: {
     remotePatterns: [
