@@ -83,11 +83,10 @@ function logSheetError(operation: string, error: any, context = {}) {
 
 
 export async function getCustomersFromSheet(): Promise<Customer[]> {
-  // Get client inside the function
   const sheets = await getSheetsClient();
-  if (!sheets || !SPREADSHEET_ID) {
-    console.error("getCustomersFromSheet: Google Sheets client not initialized or SPREADSHEET_ID missing.");
-    throw new Error('Google Sheets connection is not configured.');
+  if (!sheets) {
+    console.error("getCustomersFromSheet: Google Sheets client is not available. This is likely due to missing/invalid GOOGLE_SHEET_ID or GOOGLE_SERVICE_ACCOUNT_CREDENTIALS, or malformed credentials JSON. Please check server logs from 'googleSheetClient.ts' for more specific details.");
+    throw new Error('Google Sheets client could not be initialized. Verify configuration (Sheet ID, Service Account Credentials) and check server logs.');
   }
   try {
     console.log(`Fetching customers from range: ${CUSTOMER_RANGE}`);
@@ -114,11 +113,10 @@ export async function getCustomersFromSheet(): Promise<Customer[]> {
 }
 
 export async function addCustomerToSheet(data: NewCustomer): Promise<Customer> {
-   // Get client inside the function
   const sheets = await getSheetsClient();
-  if (!sheets || !SPREADSHEET_ID) {
-     console.error("addCustomerToSheet: Google Sheets client not initialized or SPREADSHEET_ID missing.");
-     throw new Error('Google Sheets connection is not configured.');
+  if (!sheets) {
+     console.error("addCustomerToSheet: Google Sheets client is not available. This is likely due to missing/invalid GOOGLE_SHEET_ID or GOOGLE_SERVICE_ACCOUNT_CREDENTIALS, or malformed credentials JSON. Please check server logs from 'googleSheetClient.ts' for more specific details.");
+     throw new Error('Google Sheets client could not be initialized. Verify configuration (Sheet ID, Service Account Credentials) and check server logs.');
   }
 
   const newId = `customer-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -128,15 +126,15 @@ export async function addCustomerToSheet(data: NewCustomer): Promise<Customer> {
     console.log(`Attempting to add customer ${newCustomer.id} to sheet ${CUSTOMER_SHEET_NAME}`);
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: CUSTOMER_SHEET_NAME, // Append to the sheet, not a specific range
+      range: CUSTOMER_SHEET_NAME, 
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [[newCustomer.id, newCustomer.name, newCustomer.phone, newCustomer.address]],
       },
     });
     console.log(`Successfully added customer ${newCustomer.id}. Revalidating paths...`);
-    revalidatePath('/'); // Revalidate home page to show the new customer
-    revalidatePath('/new-customer'); // Potentially clear form or redirect
+    revalidatePath('/'); 
+    revalidatePath('/new-customer'); 
     return newCustomer;
   } catch (error: any) {
     logSheetError('Adding Customer', error, { customerName: data.name, sheet: CUSTOMER_SHEET_NAME });
@@ -145,11 +143,10 @@ export async function addCustomerToSheet(data: NewCustomer): Promise<Customer> {
 }
 
 export async function getCustomerByIdFromSheet(id: string): Promise<Customer | null> {
-   // Get client inside the function
   const sheets = await getSheetsClient();
-  if (!sheets || !SPREADSHEET_ID) {
-    console.error("getCustomerByIdFromSheet: Google Sheets client not initialized or SPREADSHEET_ID missing.");
-    throw new Error('Google Sheets connection is not configured.');
+  if (!sheets) {
+    console.error("getCustomerByIdFromSheet: Google Sheets client is not available. This is likely due to missing/invalid GOOGLE_SHEET_ID or GOOGLE_SERVICE_ACCOUNT_CREDENTIALS, or malformed credentials JSON. Please check server logs from 'googleSheetClient.ts' for more specific details.");
+    throw new Error('Google Sheets client could not be initialized. Verify configuration (Sheet ID, Service Account Credentials) and check server logs.');
   }
   try {
     console.log(`Fetching customer by ID ${id} from range: ${CUSTOMER_RANGE}`);
@@ -160,7 +157,7 @@ export async function getCustomerByIdFromSheet(id: string): Promise<Customer | n
     const rows = response.data.values;
     if (rows) {
       console.log(`Searching ${rows.length -1} customer rows for ID ${id}`);
-      const customerRow = rows.slice(1).find(row => row && row.length > 0 && row[0] === id); // row[0] is ID, skip header
+      const customerRow = rows.slice(1).find(row => row && row.length > 0 && row[0] === id); 
       if (customerRow) {
          console.log(`Found customer row for ID ${id}`);
         return rowToCustomer(customerRow);
@@ -178,11 +175,10 @@ export async function getCustomerByIdFromSheet(id: string): Promise<Customer | n
 }
 
 export async function getTransactionsForCustomerFromSheet(customerId: string): Promise<Transaction[]> {
-   // Get client inside the function
   const sheets = await getSheetsClient();
-  if (!sheets || !SPREADSHEET_ID) {
-      console.error("getTransactionsForCustomerFromSheet: Google Sheets client not initialized or SPREADSHEET_ID missing.");
-      throw new Error('Google Sheets connection is not configured.');
+  if (!sheets) {
+      console.error("getTransactionsForCustomerFromSheet: Google Sheets client is not available. This is likely due to missing/invalid GOOGLE_SHEET_ID or GOOGLE_SERVICE_ACCOUNT_CREDENTIALS, or malformed credentials JSON. Please check server logs from 'googleSheetClient.ts' for more specific details.");
+      throw new Error('Google Sheets client could not be initialized. Verify configuration (Sheet ID, Service Account Credentials) and check server logs.');
   }
   try {
     console.log(`Fetching transactions for customer ID ${customerId} from range: ${TRANSACTION_RANGE}`);
@@ -192,12 +188,12 @@ export async function getTransactionsForCustomerFromSheet(customerId: string): P
     });
     const rows = response.data.values;
     console.log(`Received ${rows ? rows.length : 0} rows for transactions.`);
-    if (rows && rows.length > 1) { // Check for > 1 to ensure there's data beyond header
+    if (rows && rows.length > 1) { 
       const transactions = rows
-        .slice(1) // Skip header
-        .filter(row => row && row.length > 1 && row[1] === customerId) // Filter by customerId (column B), ensure row is valid
+        .slice(1) 
+        .filter(row => row && row.length > 1 && row[1] === customerId) 
         .map(row => rowToTransaction(row))
-        .filter(Boolean) as Transaction[]; // Filter out nulls from failed parsing
+        .filter(Boolean) as Transaction[]; 
        console.log(`Found and parsed ${transactions.length} transactions for customer ID ${customerId}.`);
       return transactions;
     }
@@ -210,11 +206,10 @@ export async function getTransactionsForCustomerFromSheet(customerId: string): P
 }
 
 export async function addTransactionToSheetService(customerId: string, data: NewTransaction): Promise<Transaction> {
-   // Get client inside the function
   const sheets = await getSheetsClient();
-  if (!sheets || !SPREADSHEET_ID) {
-      console.error("addTransactionToSheetService: Google Sheets client not initialized or SPREADSHEET_ID missing.");
-      throw new Error('Google Sheets connection is not configured.');
+  if (!sheets) {
+      console.error("addTransactionToSheetService: Google Sheets client is not available. This is likely due to missing/invalid GOOGLE_SHEET_ID or GOOGLE_SERVICE_ACCOUNT_CREDENTIALS, or malformed credentials JSON. Please check server logs from 'googleSheetClient.ts' for more specific details.");
+      throw new Error('Google Sheets client could not be initialized. Verify configuration (Sheet ID, Service Account Credentials) and check server logs.');
   }
 
   const newTxId = `tx-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
@@ -223,12 +218,10 @@ export async function addTransactionToSheetService(customerId: string, data: New
     id: newTxId,
     customerId: customerId,
     type: 'credit',
-     // Ensure quantity and price are numbers
     quantity: Number(data.quantity),
     price: Number(data.price),
   };
 
-  // Validate numbers again after conversion
   if (isNaN(newTx.quantity) || isNaN(newTx.price)) {
      console.error(`Invalid transaction data before sending: Qty=${data.quantity}, Price=${data.price}`);
      throw new Error('Invalid quantity or price provided for the transaction.');
@@ -242,7 +235,7 @@ export async function addTransactionToSheetService(customerId: string, data: New
       range: TRANSACTION_SHEET_NAME,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
-        values: [[newTx.id, newTx.customerId, newTx.itemName, newTx.quantity, newTx.price, newTx.date, newTx.type, '']], // Amount is empty for credit
+        values: [[newTx.id, newTx.customerId, newTx.itemName, newTx.quantity, newTx.price, newTx.date, newTx.type, '']], 
       },
     });
     console.log(`Successfully added transaction ${newTx.id}. Revalidating path /customers/${customerId}...`);
@@ -255,11 +248,10 @@ export async function addTransactionToSheetService(customerId: string, data: New
 }
 
 export async function addPaymentToSheetService(customerId: string, data: NewPayment): Promise<Transaction> {
-    // Get client inside the function
   const sheets = await getSheetsClient();
-   if (!sheets || !SPREADSHEET_ID) {
-      console.error("addPaymentToSheetService: Google Sheets client not initialized or SPREADSHEET_ID missing.");
-      throw new Error('Google Sheets connection is not configured.');
+   if (!sheets) {
+      console.error("addPaymentToSheetService: Google Sheets client is not available. This is likely due to missing/invalid GOOGLE_SHEET_ID or GOOGLE_SERVICE_ACCOUNT_CREDENTIALS, or malformed credentials JSON. Please check server logs from 'googleSheetClient.ts' for more specific details.");
+      throw new Error('Google Sheets client could not be initialized. Verify configuration (Sheet ID, Service Account Credentials) and check server logs.');
   }
 
   const newPaymentId = `payment-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
@@ -267,14 +259,13 @@ export async function addPaymentToSheetService(customerId: string, data: NewPaym
     id: newPaymentId,
     customerId: customerId,
     type: 'payment',
-    amount: Number(data.amount), // Ensure amount is a number
+    amount: Number(data.amount), 
     date: data.date,
-    itemName: 'Payment Received', // Fixed item name for payments
-    quantity: 1, // Default quantity for payment type
-    price: 0, // Default price for payment type
+    itemName: 'Payment Received', 
+    quantity: 1, 
+    price: 0, 
   };
 
-   // Validate amount
    if (isNaN(newPaymentTx.amount as number) || (newPaymentTx.amount as number) <= 0) {
         console.error(`Invalid payment amount before sending: Amount=${data.amount}`);
         throw new Error('Invalid payment amount provided.');
@@ -288,8 +279,7 @@ export async function addPaymentToSheetService(customerId: string, data: NewPaym
       range: TRANSACTION_SHEET_NAME,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
-        // TxID, CustID, ItemName, Qty, Price, Date, Type, Amount
-        values: [[newPaymentTx.id, newPaymentTx.customerId, newPaymentTx.itemName, '', '', newPaymentTx.date, newPaymentTx.type, newPaymentTx.amount]], // Qty/Price empty for payment
+        values: [[newPaymentTx.id, newPaymentTx.customerId, newPaymentTx.itemName, '', '', newPaymentTx.date, newPaymentTx.type, newPaymentTx.amount]], 
       },
     });
     console.log(`Successfully added payment ${newPaymentTx.id}. Revalidating path /customers/${customerId}...`);
