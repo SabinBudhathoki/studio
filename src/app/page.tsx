@@ -1,4 +1,5 @@
 
+import type { Customer } from '@/lib/types'; // Import Customer type
 import { getCustomersFromSheet } from '@/services/customerService';
 import CustomerClientPage from '@/components/CustomerClientPage'; // New client component
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -6,7 +7,7 @@ import { AlertTriangle } from 'lucide-react';
 
 // This is now a Server Component
 export default async function HomePage() {
-  let customers = [];
+  let customers: Customer[] = []; // Explicitly type customers as Customer[]
   let errorLoadingCustomers: string | null = null;
 
   try {
@@ -48,3 +49,4 @@ export default async function HomePage() {
     </div>
   );
 }
+
