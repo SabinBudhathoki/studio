@@ -1,10 +1,8 @@
-
 'use client'; 
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { PlusCircle, User, Shield } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import AppLogo from './AppLogo';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { useTranslation } from '@/context/LanguageContext';
@@ -18,28 +16,12 @@ const AppHeader = () => {
         <AppLogo />
         <nav className="flex items-center gap-2">
           <LanguageSwitcher />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="default" size="lg">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                {t('addCustomer')}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="shadow-xl">
-              <DropdownMenuItem asChild>
-                <Link href="/new-customer">
-                  <User className="mr-2 h-4 w-4" />
-                  <span>{t('normalCustomer')}</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                 <Link href="/new-customer"> 
-                  <Shield className="mr-2 h-4 w-4" />
-                  <span>{t('nepalArmyCustomer')}</span>
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button asChild variant="default" size="lg">
+            <Link href="/new-customer">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              {t('addCustomer')}
+            </Link>
+          </Button>
         </nav>
       </div>
     </header>
