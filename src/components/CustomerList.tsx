@@ -1,20 +1,26 @@
+
+'use client';
+
 import type { Customer } from '@/lib/types';
 import CustomerCard from './CustomerCard';
 import { AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useTranslation } from '@/context/LanguageContext';
 
 interface CustomerListProps {
   customers: Customer[];
 }
 
 const CustomerList: React.FC<CustomerListProps> = ({ customers }) => {
+  const { t } = useTranslation();
+
   if (customers.length === 0) {
     return (
        <Alert className="bg-accent/50 border-accent text-accent-foreground">
           <AlertTriangle className="h-5 w-5 text-accent-foreground" />
-          <AlertTitle className="font-semibold">No Customers Found</AlertTitle>
+          <AlertTitle className="font-semibold">{t('noCustomersFoundTitle')}</AlertTitle>
           <AlertDescription>
-            No customers match your search criteria, or you haven't added any customers yet.
+            {t('noCustomersFoundDescription')}
           </AlertDescription>
         </Alert>
     );

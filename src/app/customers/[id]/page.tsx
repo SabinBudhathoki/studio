@@ -22,12 +22,14 @@ import {
   fetchCustomerTransactionsAction
 } from '@/actions/customerActions'; 
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from '@/context/LanguageContext';
 
 
 export default function CustomerDetailPage() {
   const params = useParams();
   const id = params.id as string;
   const { toast } = useToast();
+  const { t } = useTranslation();
   
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -47,7 +49,7 @@ export default function CustomerDetailPage() {
             setCustomer(customerData);
             setTransactions(transactionsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
           } else {
-            setError('Customer not found.');
+            setError(t('customerNotFound'));
           }
         } catch (err: any) {
           console.error("Error fetching customer data:", err);
@@ -58,7 +60,7 @@ export default function CustomerDetailPage() {
       };
       fetchData();
     }
-  }, [id]);
+  }, [id, t]);
   
   const balance = customer ? calculateBalance(transactions) : 0;
 
@@ -66,9 +68,9 @@ export default function CustomerDetailPage() {
     const result = await handleAddTransactionAction(id, data);
     if (result.success && result.newTransaction) {
       setTransactions(prev => [result.newTransaction!, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      toast({ title: 'Success', description: result.message });
+      toast({ title: t('success'), description: result.message });
     } else {
-      toast({ title: 'Error', description: result.message, variant: 'destructive' });
+      toast({ title: t('error'), description: result.message, variant: 'destructive' });
       throw new Error(result.message); 
     }
   };
@@ -77,9 +79,9 @@ export default function CustomerDetailPage() {
     const result = await handleAddPaymentAction(id, data);
      if (result.success && result.newPayment) {
       setTransactions(prev => [result.newPayment!, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      toast({ title: 'Success', description: result.message });
+      toast({ title: t('success'), description: result.message });
     } else {
-      toast({ title: 'Error', description: result.message, variant: 'destructive' });
+      toast({ title: t('error'), description: result.message, variant: 'destructive' });
       throw new Error(result.message); 
     }
   };
@@ -105,7 +107,7 @@ export default function CustomerDetailPage() {
         <BackButton />
         <Alert variant="destructive" className="shadow-md">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>{t('error')}</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       </div>
@@ -118,8 +120,8 @@ export default function CustomerDetailPage() {
         <BackButton />
         <Alert variant="destructive" className="shadow-md">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>Customer not found.</AlertDescription>
+          <AlertTitle>{t('error')}</AlertTitle>
+          <AlertDescription>{t('customerNotFound')}</AlertDescription>
         </Alert>
       </div>
     );
@@ -130,13 +132,13 @@ export default function CustomerDetailPage() {
     <div className="space-y-8">
       <BackButton />
       
-      <Card className="shadow-xl"> {/* Increased shadow for emphasis */}
+      <Card className="shadow-xl">
         <CardHeader>
-          <CardTitle className="text-3xl flex items-center gap-3 text-primary"> {/* Slightly larger title */}
+          <CardTitle className="text-3xl flex items-center gap-3 text-primary">
             <User className="h-8 w-8" /> {customer.name}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 pt-2"> {/* Added pt-2 for better spacing after title */}
+        <CardContent className="space-y-4 pt-2">
           <div className="flex items-center text-muted-foreground text-sm">
             <Phone className="h-5 w-5 mr-3" />
             <span>{customer.phone}</span>
@@ -145,17 +147,17 @@ export default function CustomerDetailPage() {
             <MapPin className="h-5 w-5 mr-3 mt-0.5 shrink-0" />
             <span>{customer.address}</span>
           </div>
-          <Separator className="my-6" /> {/* Increased margin for separator */}
-          <div className="flex items-center text-xl"> {/* Larger text for balance */}
+          <Separator className="my-6" />
+          <div className="flex items-center text-xl">
             <Wallet className="h-7 w-7 mr-3 text-muted-foreground" />
-            <span className="font-semibold">Current Balance: </span>
+            <span className="font-semibold">{t('currentBalance')}: </span>
             <span className={cn(
-                "ml-2 font-bold", // Bolder balance
+                "ml-2 font-bold",
                 balance < 0 ? 'text-destructive' : balance > 0 ? 'text-green-600' : 'text-foreground' 
               )}
             >
               ₹{Math.abs(balance).toFixed(2)} 
-              {balance < 0 ? <span className="text-xs font-medium ml-1">(Due)</span> : balance > 0 ? <span className="text-xs font-medium ml-1 text-green-600">(Advance)</span> : ''}
+              {balance < 0 ? <span className="text-xs font-medium ml-1">({t('due')})</span> : balance > 0 ? <span className="text-xs font-medium ml-1 text-green-600">({t('advance')})</span> : ''}
             </span>
           </div>
         </CardContent>
@@ -167,9 +169,9 @@ export default function CustomerDetailPage() {
       </div>
 
       <div>
-        <h2 className="text-2xl font-semibold mb-6 mt-10 flex items-center gap-2"> {/* Adjusted margins */}
+        <h2 className="text-2xl font-semibold mb-6 mt-10 flex items-center gap-2">
           <ListChecks className="h-7 w-7" />
-          Transaction History
+          {t('transactionHistory')}
         </h2>
         {transactions.length > 0 ? (
           <div className="space-y-3">
@@ -178,11 +180,11 @@ export default function CustomerDetailPage() {
             ))}
           </div>
         ) : (
-          <Alert className="bg-card border-border shadow-sm"> {/* Adjusted alert style for better theme integration */}
+          <Alert className="bg-card border-border shadow-sm">
             <AlertTriangle className="h-5 w-5 text-muted-foreground" />
-            <AlertTitle className="font-semibold text-foreground">No Transactions Yet</AlertTitle>
+            <AlertTitle className="font-semibold text-foreground">{t('noTransactionsTitle')}</AlertTitle>
             <AlertDescription className="text-muted-foreground">
-              This customer has no transactions or payments recorded. Add one using the forms above.
+              {t('noTransactionsDescription')}
             </AlertDescription>
           </Alert>
         )}

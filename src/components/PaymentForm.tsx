@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,9 +21,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarIcon, DollarSign, Save } from 'lucide-react';
+import { CalendarIcon, DollarSign, Save, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { useTranslation } from '@/context/LanguageContext';
 
 interface PaymentFormProps {
   customerId: string;
@@ -31,6 +33,7 @@ interface PaymentFormProps {
 
 export function PaymentForm({ customerId, onSubmit }: PaymentFormProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const form = useForm<z.infer<typeof paymentSchema>>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
@@ -43,25 +46,25 @@ export function PaymentForm({ customerId, onSubmit }: PaymentFormProps) {
     try {
       await onSubmit(values);
       toast({
-        title: 'Payment Recorded!',
-        description: `Payment of ₹${values.amount} added.`,
+        title: t('paymentRecorded'),
+        description: t('paymentRecordedSuccess', { amount: values.amount }),
       });
       form.reset({ ...values, amount: 0 }); // Keep date, reset amount
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to record payment.',
+        title: t('error'),
+        description: t('failedToRecordPayment'),
         variant: 'destructive',
       });
     }
   }
 
   return (
-    <Card className="shadow-xl"> {/* Changed shadow-lg to shadow-xl for consistency */}
+    <Card className="shadow-xl">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl text-primary">
           <DollarSign className="h-6 w-6" />
-          Add Payment
+          {t('addPayment')}
         </CardTitle>
       </CardHeader>
       <Form {...form}>
@@ -72,7 +75,7 @@ export function PaymentForm({ customerId, onSubmit }: PaymentFormProps) {
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Amount Paid</FormLabel>
+                  <FormLabel>{t('amountPaid')}</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="0.00" step="0.01" {...field} />
                   </FormControl>
@@ -85,7 +88,7 @@ export function PaymentForm({ customerId, onSubmit }: PaymentFormProps) {
               name="date"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Date of Payment</FormLabel>
+                  <FormLabel>{t('dateOfPayment')}</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -99,7 +102,7 @@ export function PaymentForm({ customerId, onSubmit }: PaymentFormProps) {
                           {field.value ? (
                             format(new Date(field.value), 'PPP')
                           ) : (
-                            <span>Pick a date</span>
+                            <span>{t('pickADate')}</span>
                           )}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
@@ -121,7 +124,7 @@ export function PaymentForm({ customerId, onSubmit }: PaymentFormProps) {
           </CardContent>
           <CardFooter>
             <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? 'Saving...' : <><Save className="mr-2 h-4 w-4" /> Record Payment</>}
+              {form.formState.isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('saving')}</> : <><Save className="mr-2 h-4 w-4" /> {t('recordPayment')}</>}
             </Button>
           </CardFooter>
         </form>

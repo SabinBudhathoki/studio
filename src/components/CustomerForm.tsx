@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,16 +21,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { UserPlus, Save } from 'lucide-react';
+import { UserPlus, Save, Loader2 } from 'lucide-react';
+import { useTranslation } from '@/context/LanguageContext';
 
 
 interface CustomerFormProps {
-  onSubmit: (data: NewCustomer) => Promise<void>; // Simulate async action
+  onSubmit: (data: NewCustomer) => Promise<void>;
 }
 
 export function CustomerForm({ onSubmit }: CustomerFormProps) {
   const { toast } = useToast();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const form = useForm<z.infer<typeof customerSchema>>({
     resolver: zodResolver(customerSchema),
@@ -44,16 +47,16 @@ export function CustomerForm({ onSubmit }: CustomerFormProps) {
     try {
       await onSubmit(values);
       toast({
-        title: 'Customer Registered!',
-        description: `${values.name} has been successfully added.`,
+        title: t('customerRegistered'),
+        description: t('customerRegisteredSuccess', { name: values.name }),
         variant: 'default',
       });
       form.reset();
-      router.push('/'); // Redirect to home page after successful submission
+      router.push('/');
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to register customer. Please try again.',
+        title: t('error'),
+        description: t('failedToRegisterCustomer'),
         variant: 'destructive',
       });
     }
@@ -64,7 +67,7 @@ export function CustomerForm({ onSubmit }: CustomerFormProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-2xl text-primary">
           <UserPlus className="h-7 w-7" />
-          Register New Customer
+          {t('registerNewCustomer')}
         </CardTitle>
       </CardHeader>
       <Form {...form}>
@@ -75,9 +78,9 @@ export function CustomerForm({ onSubmit }: CustomerFormProps) {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel>{t('fullName')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter customer's full name" {...field} />
+                    <Input placeholder={t('fullNamePlaceholder')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -88,9 +91,9 @@ export function CustomerForm({ onSubmit }: CustomerFormProps) {
               name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
+                  <FormLabel>{t('phoneNumber')}</FormLabel>
                   <FormControl>
-                    <Input type="tel" placeholder="Enter phone number" {...field} />
+                    <Input type="tel" placeholder={t('phoneNumberPlaceholder')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -101,9 +104,9 @@ export function CustomerForm({ onSubmit }: CustomerFormProps) {
               name="address"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Address</FormLabel>
+                  <FormLabel>{t('address')}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Enter full address" {...field} rows={3} />
+                    <Textarea placeholder={t('addressPlaceholder')} {...field} rows={3} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -113,11 +116,11 @@ export function CustomerForm({ onSubmit }: CustomerFormProps) {
           <CardFooter>
             <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? (
-                'Saving...'
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('saving')}</>
               ) : (
                 <>
                   <Save className="mr-2 h-4 w-4" />
-                  Save Customer
+                  {t('saveCustomer')}
                 </>
               )}
             </Button>

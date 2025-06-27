@@ -4,6 +4,7 @@ import { Geist } from 'next/font/google'; // Using Geist Sans as primary
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import AppLayout from '@/components/AppLayout';
+import { LanguageProvider } from '@/context/LanguageContext';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -38,8 +39,10 @@ export default function RootLayout({
          <meta name="theme-color" content="#3b82f6" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AppLayout>{children}</AppLayout>
-        <Toaster />
+        <LanguageProvider>
+          <AppLayout>{children}</AppLayout>
+          <Toaster />
+        </LanguageProvider>
       </body>
     </html>
   );
