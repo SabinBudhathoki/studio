@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   title: 'Udaaro - Credit Management Made Easy',
   description: 'Udaaro helps you manage customer credit transactions and payments effortlessly.',
   // Add theme color for browser UI theming (matches PWA theme_color)
-  themeColor: '#3b82f6',
+  themeColor: '#A7F3D0',
 };
 
 export default function RootLayout({
@@ -36,7 +36,7 @@ export default function RootLayout({
     <html lang="en">
       {/* Add theme-color meta tag for better PWA integration */}
       <head>
-         <meta name="theme-color" content="#3b82f6" />
+         <meta name="theme-color" content="#A7F3D0" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <LanguageProvider>
