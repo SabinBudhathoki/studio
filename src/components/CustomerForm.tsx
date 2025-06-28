@@ -17,6 +17,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -40,6 +41,7 @@ export function CustomerForm({ onSubmit }: CustomerFormProps) {
       name: '',
       phone: '',
       address: '',
+      customerType: 'normal',
     },
   });
 
@@ -73,6 +75,40 @@ export function CustomerForm({ onSubmit }: CustomerFormProps) {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)}>
           <CardContent className="space-y-6">
+             <FormField
+              control={form.control}
+              name="customerType"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>{t('customerType')}</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex space-x-4"
+                    >
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="normal" />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          {t('normalCustomer')}
+                        </FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="army" />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          {t('nepalArmyCustomer')}
+                        </FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="name"
@@ -91,7 +127,7 @@ export function CustomerForm({ onSubmit }: CustomerFormProps) {
               name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('phoneNumber')}</FormLabel>
+                  <FormLabel>{t('phoneNumberOptional')}</FormLabel>
                   <FormControl>
                     <Input type="tel" placeholder={t('phoneNumberPlaceholder')} {...field} />
                   </FormControl>

@@ -5,6 +5,7 @@
   "addCustomer": "Add Customer",
   "normalCustomer": "Normal Customer",
   "nepalArmyCustomer": "Nepal Army Customer",
+  "nepalArmyShort": "Army",
   "back": "Back",
   "balance": "Balance",
   "due": "Due",
@@ -17,6 +18,7 @@
   "fullName": "Full Name",
   "fullNamePlaceholder": "Enter customer's full name",
   "phoneNumber": "Phone Number",
+  "phoneNumberOptional": "Phone Number (Optional)",
   "phoneNumberPlaceholder": "Enter phone number",
   "address": "Address",
   "addressPlaceholder": "Enter full address",
@@ -64,5 +66,6 @@
   "confirmDelete": "Yes, delete customer",
   "dangerZone": "Danger Zone",
   "dangerZoneDescription": "These actions are permanent and cannot be undone.",
-  "customerDeletedSuccess": "{{customerName}} has been permanently deleted."
+  "customerDeletedSuccess": "{{customerName}} has been permanently deleted.",
+  "customerType": "Customer Type"
 }

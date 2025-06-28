@@ -15,12 +15,14 @@ import type { sheets_v4 } from 'googleapis';
 // Removed top-level: const sheets = getSheetsClient();
 
 function rowToCustomer(row: any[]): Customer | null {
-  if (!row || row.length < 4) return null; // ID, Name, Phone, Address
+  if (!row || row.length < 4) return null; // ID, Name, Phone, Address, [Type]
+  const customerType = row[4];
   return {
     id: row[0],
     name: row[1],
-    phone: row[2],
+    phone: row[2] || undefined, // Handle empty phone cell
     address: row[3],
+    customerType: customerType === 'army' ? 'army' : 'normal', // Default to normal
     transactions: [], // Transactions will be fetched separately
   };
 }
@@ -160,7 +162,7 @@ export async function addCustomerToSheet(data: NewCustomer): Promise<Customer> {
       range: CUSTOMER_SHEET_NAME, 
       valueInputOption: 'USER_ENTERED',
       requestBody: {
-        values: [[newCustomer.id, newCustomer.name, newCustomer.phone, newCustomer.address]],
+        values: [[newCustomer.id, newCustomer.name, newCustomer.phone || '', newCustomer.address, newCustomer.customerType]],
       },
     });
     console.log(`Successfully added customer ${newCustomer.id}. Revalidating paths...`);

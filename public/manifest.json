@@ -1,5 +1,5 @@
 {
-  "name": "Udaaro - Credit Management Made Easy",
+  "name": "Udaaro - Credit Management",
   "short_name": "Udaaro",
   "description": "Udaaro helps you manage customer credit transactions and payments effortlessly.",
   "icons": [
@@ -17,8 +17,8 @@
     }
   ],
   "theme_color": "#A7F3D0",
-  "background_color": "#F0FFF4",
+  "background_color": "#FFFDF9",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait"
+  "scope": "/"
 }

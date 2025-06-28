@@ -11,9 +11,10 @@ import { DeleteCustomerDialog } from '@/components/DeleteCustomerDialog';
 import TransactionListItem from '@/components/TransactionListItem';
 import BackButton from '@/components/BackButton';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, User, Phone, MapPin, Wallet, ListChecks, AlertCircle } from 'lucide-react';
+import { AlertTriangle, User, Phone, MapPin, Wallet, ListChecks, AlertCircle, Shield } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { 
@@ -151,15 +152,25 @@ export default function CustomerDetailPage() {
       
       <Card className="shadow-xl">
         <CardHeader>
-          <CardTitle className="text-3xl flex items-center gap-3 text-primary">
-            <User className="h-8 w-8" /> {customer.name}
-          </CardTitle>
+          <div className="flex justify-between items-start">
+            <CardTitle className="text-3xl flex items-center gap-3 text-primary">
+              <User className="h-8 w-8" /> {customer.name}
+            </CardTitle>
+            {customer.customerType === 'army' && (
+              <Badge variant="secondary" className="flex items-center gap-1.5">
+                <Shield className="h-4 w-4" />
+                {t('nepalArmyCustomer')}
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4 pt-2">
-          <div className="flex items-center text-muted-foreground text-sm">
-            <Phone className="h-5 w-5 mr-3" />
-            <span>{customer.phone}</span>
-          </div>
+          {customer.phone && (
+            <div className="flex items-center text-muted-foreground text-sm">
+              <Phone className="h-5 w-5 mr-3" />
+              <span>{customer.phone}</span>
+            </div>
+          )}
           <div className="flex items-start text-muted-foreground text-sm">
             <MapPin className="h-5 w-5 mr-3 mt-0.5 shrink-0" />
             <span>{customer.address}</span>

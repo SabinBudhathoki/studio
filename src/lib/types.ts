@@ -12,8 +12,9 @@ export interface Transaction {
 export interface Customer {
   id: string;
   name: string;
-  phone: string;
+  phone?: string;
   address: string;
+  customerType: 'normal' | 'army';
   transactions: Transaction[];
 }
 

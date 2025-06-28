@@ -5,6 +5,7 @@
     "addCustomer": "ग्राहक थप्नुहोस्",
     "normalCustomer": "साधारण ग्राहक",
     "nepalArmyCustomer": "नेपाली सेना ग्राहक",
+    "nepalArmyShort": "सेना",
     "back": "पछाडि",
     "balance": "बक्यौता",
     "due": "तिर्न बाँकी",
@@ -17,6 +18,7 @@
     "fullName": "पूरा नाम",
     "fullNamePlaceholder": "ग्राहकको पूरा नाम लेख्नुहोस्",
     "phoneNumber": "फोन नम्बर",
+    "phoneNumberOptional": "फोन नम्बर (वैकल्पिक)",
     "phoneNumberPlaceholder": "फोन नम्बर लेख्नुहोस्",
     "address": "ठेगाना",
     "addressPlaceholder": "पूरा ठेगाना लेख्नुहोस्",
@@ -64,5 +66,6 @@
     "confirmDelete": "हो, ग्राहक मेटाउनुहोस्",
     "dangerZone": "खतरा क्षेत्र",
     "dangerZoneDescription": "यी कार्यहरू स्थायी छन् र उल्टाउन सकिँदैन।",
-    "customerDeletedSuccess": "{{customerName}} स्थायी रूपमा मेटाइएको छ।"
+    "customerDeletedSuccess": "{{customerName}} स्थायी रूपमा मेटाइएको छ।",
+    "customerType": "ग्राहक प्रकार"
 }

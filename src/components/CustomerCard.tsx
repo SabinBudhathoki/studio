@@ -5,7 +5,8 @@ import type { Customer } from '@/lib/types';
 import { calculateBalance } from '@/lib/mockData';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Phone, MapPin, ArrowRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Phone, MapPin, ArrowRight, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/context/LanguageContext';
 
@@ -20,13 +21,23 @@ const CustomerCard: React.FC<CustomerCardProps> = ({ customer }) => {
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col bg-card">
       <CardHeader className="pb-3 pt-5 px-5">
-        <CardTitle className="text-xl font-semibold text-primary truncate">{customer.name}</CardTitle>
+        <div className="flex justify-between items-center gap-2">
+          <CardTitle className="text-xl font-semibold text-primary truncate">{customer.name}</CardTitle>
+          {customer.customerType === 'army' && (
+            <Badge variant="secondary" className="flex items-center gap-1 shrink-0">
+              <Shield className="h-3.5 w-3.5" />
+              {t('nepalArmyShort')}
+            </Badge>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-2 px-5 pb-4 flex-grow">
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Phone className="h-4 w-4 mr-2.5 shrink-0" />
-          <span>{customer.phone}</span>
-        </div>
+        {customer.phone && (
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Phone className="h-4 w-4 mr-2.5 shrink-0" />
+            <span>{customer.phone}</span>
+          </div>
+        )}
         <div className="flex items-start text-sm text-muted-foreground">
           <MapPin className="h-4 w-4 mr-2.5 mt-0.5 shrink-0" />
           <span className="line-clamp-2">{customer.address}</span>

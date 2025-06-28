@@ -68,8 +68,8 @@ export const getSheetsClient = async (): Promise<sheets_v4.Sheets | null> => {
 export { SPREADSHEET_ID }; // Export separately
 
 export const CUSTOMER_SHEET_NAME = process.env.GOOGLE_SHEET_CUSTOMER_SHEET_NAME || 'Customers';
-export const CUSTOMER_RANGE = `${CUSTOMER_SHEET_NAME}!A:D`; // Range for Customers: ID, Name, Phone, Address
-export const CUSTOMER_HEADERS = ['ID', 'Name', 'Phone', 'Address'];
+export const CUSTOMER_RANGE = `${CUSTOMER_SHEET_NAME}!A:E`; // Range for Customers: ID, Name, Phone, Address, Type
+export const CUSTOMER_HEADERS = ['ID', 'Name', 'Phone', 'Address', 'Type'];
 
 export const TRANSACTION_SHEET_NAME = process.env.GOOGLE_SHEET_TRANSACTION_SHEET_NAME || 'Transactions';
 export const TRANSACTION_RANGE = `${TRANSACTION_SHEET_NAME}!A:H`; // Range for Transactions: TxID, CustID, ItemName, Qty, Price, Date, Type, Amount
