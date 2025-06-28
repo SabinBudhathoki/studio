@@ -104,6 +104,7 @@ export async function getCustomersFromSheet(): Promise<Customer[]> {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: CUSTOMER_RANGE,
+      valueRenderOption: 'UNFORMATTED_VALUE',
     });
     const rows = response.data.values;
      console.log(`Received ${rows ? rows.length : 0} rows for customers.`);
@@ -134,6 +135,7 @@ export async function getAllTransactionsFromSheet(): Promise<Transaction[]> {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: TRANSACTION_RANGE,
+      valueRenderOption: 'UNFORMATTED_VALUE',
     });
     const rows = response.data.values;
     console.log(`Received ${rows ? rows.length : 0} total rows for transactions.`);
@@ -194,6 +196,7 @@ export async function getCustomerByIdFromSheet(id: string): Promise<Customer | n
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: CUSTOMER_RANGE,
+      valueRenderOption: 'UNFORMATTED_VALUE',
     });
     const rows = response.data.values;
     if (rows) {
@@ -226,6 +229,7 @@ export async function getTransactionsForCustomerFromSheet(customerId: string): P
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: TRANSACTION_RANGE,
+      valueRenderOption: 'UNFORMATTED_VALUE',
     });
     const rows = response.data.values;
     console.log(`Received ${rows ? rows.length : 0} rows for transactions.`);
@@ -360,8 +364,8 @@ export async function deleteCustomerFromSheet(customerId: string): Promise<void>
 
     // 2. Get all data from both sheets
     const [customerData, transactionData] = await Promise.all([
-        sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: CUSTOMER_SHEET_NAME }),
-        sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: TRANSACTION_SHEET_NAME })
+        sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: CUSTOMER_SHEET_NAME, valueRenderOption: 'UNFORMATTED_VALUE' }),
+        sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: TRANSACTION_SHEET_NAME, valueRenderOption: 'UNFORMATTED_VALUE' })
     ]);
 
     const customerRows = customerData.data.values || [];
@@ -432,5 +436,3 @@ export async function deleteCustomerFromSheet(customerId: string): Promise<void>
     throw new Error(`Failed to delete customer ${customerId}. ${error.message || 'Check sheet permissions.'}`);
   }
 }
-
-    
