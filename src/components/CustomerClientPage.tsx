@@ -6,17 +6,18 @@ import { useState, useMemo, useEffect } from 'react';
 import CustomerSearch from '@/components/CustomerSearch';
 import CustomerList from '@/components/CustomerList';
 import { Skeleton } from '@/components/ui/skeleton';
+import OverdueNotification from './OverdueNotification';
 
 interface CustomerClientPageProps {
   initialCustomers: Customer[];
+  overdueCustomers: Customer[];
 }
 
-export default function CustomerClientPage({ initialCustomers }: CustomerClientPageProps) {
+export default function CustomerClientPage({ initialCustomers, overdueCustomers }: CustomerClientPageProps) {
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(false); // Initial load handled by server component
+  const [isLoading, setIsLoading] = useState(false); 
 
-  // If initialCustomers changes (e.g. due to parent re-fetch, though less common for full page navigation), update state
   useEffect(() => {
     setCustomers(initialCustomers);
   }, [initialCustomers]);
@@ -30,7 +31,7 @@ export default function CustomerClientPage({ initialCustomers }: CustomerClientP
     );
   }, [customers, searchTerm]);
 
-  if (isLoading) { // This might be used if client-side re-fetching is added later
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-12 w-full" />
@@ -45,6 +46,7 @@ export default function CustomerClientPage({ initialCustomers }: CustomerClientP
 
   return (
     <>
+      {overdueCustomers.length > 0 && <OverdueNotification customers={overdueCustomers} />}
       <CustomerSearch searchTerm={searchTerm} onSearchChange={setSearchTerm} />
       <CustomerList customers={filteredCustomers} />
     </>

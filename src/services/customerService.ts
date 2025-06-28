@@ -112,6 +112,36 @@ export async function getCustomersFromSheet(): Promise<Customer[]> {
   }
 }
 
+export async function getAllTransactionsFromSheet(): Promise<Transaction[]> {
+  const sheets = await getSheetsClient();
+  if (!sheets) {
+    console.error("getAllTransactionsFromSheet: Google Sheets client is not available. This is likely due to missing/invalid GOOGLE_SHEET_ID or GOOGLE_SERVICE_ACCOUNT_CREDENTIALS, or malformed credentials JSON. Please check server logs from 'googleSheetClient.ts' for more specific details.");
+    throw new Error('Google Sheets client could not be initialized. Verify configuration (Sheet ID, Service Account Credentials) and check server logs.');
+  }
+  try {
+    console.log(`Fetching all transactions from range: ${TRANSACTION_RANGE}`);
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: TRANSACTION_RANGE,
+    });
+    const rows = response.data.values;
+    console.log(`Received ${rows ? rows.length : 0} total rows for transactions.`);
+    if (rows && rows.length > 1) {
+      const transactions = rows
+        .slice(1)
+        .map(row => rowToTransaction(row))
+        .filter(Boolean) as Transaction[];
+      console.log(`Successfully parsed ${transactions.length} total transactions.`);
+      return transactions;
+    }
+    console.log('No transaction data found (or only header row exists).');
+    return [];
+  } catch (error: any) {
+    logSheetError('Fetching All Transactions', error, { range: TRANSACTION_RANGE });
+    throw new Error(`Failed to fetch all transactions. ${error.message || 'Check sheet access.'}`);
+  }
+}
+
 export async function addCustomerToSheet(data: NewCustomer): Promise<Customer> {
   const sheets = await getSheetsClient();
   if (!sheets) {
@@ -240,6 +270,7 @@ export async function addTransactionToSheetService(customerId: string, data: New
     });
     console.log(`Successfully added transaction ${newTx.id}. Revalidating path /customers/${customerId}...`);
     revalidatePath(`/customers/${customerId}`);
+    revalidatePath('/');
     return newTx;
   } catch (error: any) {
     logSheetError('Adding Transaction', error, { customerId: customerId, itemName: data.itemName, sheet: TRANSACTION_SHEET_NAME });
@@ -284,6 +315,7 @@ export async function addPaymentToSheetService(customerId: string, data: NewPaym
     });
     console.log(`Successfully added payment ${newPaymentTx.id}. Revalidating path /customers/${customerId}...`);
     revalidatePath(`/customers/${customerId}`);
+    revalidatePath('/');
     return newPaymentTx;
   } catch (error: any) {
     logSheetError('Adding Payment', error, { customerId: customerId, amount: data.amount, sheet: TRANSACTION_SHEET_NAME });
