@@ -1,20 +1,35 @@
 
 import { initializeApp, getApps, getApp } from "firebase/app";
 
-// IMPORTANT: For security, move this configuration to environment variables
-// See: https://nextjs.org/docs/app/building-your-application/configuring/environment-variables
+// Your web app's Firebase configuration is now read from environment variables
+// for better security and flexibility.
 const firebaseConfig = {
-  apiKey: "AIzaSyDsU-WMvIqHXyOvmKyLicvOk2sGkkJiT54",
-  authDomain: "udaaro-t09m0.firebaseapp.com",
-  projectId: "udaaro-t09m0",
-  storageBucket: "udaaro-t09m0.firebasestorage.app",
-  messagingSenderId: "990367703477",
-  appId: "1:990367703477:web:d6353876e56b2ce95539fc"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
 // Initialize Firebase
 // To prevent re-initializing on hot reloads in development,
 // we check if an app has already been initialized.
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+let app;
+
+// Check that all required environment variables are present before initializing
+if (
+  firebaseConfig.apiKey &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.projectId &&
+  firebaseConfig.storageBucket &&
+  firebaseConfig.messagingSenderId &&
+  firebaseConfig.appId
+) {
+  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+} else {
+  console.error("Firebase configuration is incomplete. Please check your environment variables.");
+}
+
 
 export { app };
