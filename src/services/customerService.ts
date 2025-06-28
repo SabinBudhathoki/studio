@@ -30,10 +30,17 @@ function rowToCustomer(row: any[]): Customer | null {
 function rowToTransaction(row: any[]): Transaction | null {
   if (!row || row.length < 8) return null;
   // TransactionID, CustomerID, ItemName, Quantity, Price, Date, Type, Amount
-  const type = row[6] as 'credit' | 'payment';
+  
+  // Robustly determine transaction type. If a valid amount exists in the amount column, it's a payment.
+  // Otherwise, it's a credit. This is more reliable than the 'Type' column string.
+  const rawAmount = row[7];
+  const isPayment = rawAmount !== '' && rawAmount != null && !isNaN(parseFloat(rawAmount));
+  const type = isPayment ? 'payment' : 'credit';
+
+  // Parse values based on the determined type
   const quantity = type === 'credit' ? parseInt(row[3], 10) : 1;
   const price = type === 'credit' ? parseFloat(row[4]) : 0;
-  const amount = type === 'payment' ? parseFloat(row[7]) : undefined;
+  const amount = type === 'payment' ? parseFloat(rawAmount) : undefined;
 
   // Basic validation for parsed numbers
   if (type === 'credit' && (isNaN(quantity) || isNaN(price))) {
@@ -57,6 +64,7 @@ function rowToTransaction(row: any[]): Transaction | null {
     amount: amount,
   };
 }
+
 
 // Helper function to log detailed errors
 function logSheetError(operation: string, error: any, context = {}) {
@@ -424,3 +432,5 @@ export async function deleteCustomerFromSheet(customerId: string): Promise<void>
     throw new Error(`Failed to delete customer ${customerId}. ${error.message || 'Check sheet permissions.'}`);
   }
 }
+
+    
