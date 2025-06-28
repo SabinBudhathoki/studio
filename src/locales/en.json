@@ -54,5 +54,15 @@
   "toggleLanguage": "Toggle language",
   "english": "English",
   "nepali": "नेपाली (Nepali)",
-  "success": "Success"
+  "success": "Success",
+  "deleteCustomer": "Delete Customer",
+  "areYouSure": "Are you absolutely sure?",
+  "deleteConfirmationWarning": "This action cannot be undone. This will permanently delete {{customerName}} and all of their transaction history.",
+  "typeToConfirm": "Please type {{customerName}} to confirm.",
+  "cancel": "Cancel",
+  "deleting": "Deleting...",
+  "confirmDelete": "Yes, delete customer",
+  "dangerZone": "Danger Zone",
+  "dangerZoneDescription": "These actions are permanent and cannot be undone.",
+  "customerDeletedSuccess": "{{customerName}} has been permanently deleted."
 }

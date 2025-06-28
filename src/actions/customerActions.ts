@@ -7,8 +7,10 @@ import {
   addTransactionToSheetService, 
   addPaymentToSheetService,
   getCustomerByIdFromSheet,
-  getTransactionsForCustomerFromSheet 
+  getTransactionsForCustomerFromSheet,
+  deleteCustomerFromSheet
 } from '@/services/customerService'; // Import the service functions
+import { revalidatePath } from 'next/cache';
 
 export async function handleAddCustomerAction(data: NewCustomer): Promise<{ success: boolean; message: string }> {
   try {
@@ -66,5 +68,18 @@ export async function fetchCustomerTransactionsAction(id: string): Promise<Trans
     console.error(`Error in fetchCustomerTransactionsAction for id ${id}:`, error);
     // Optionally, re-throw or return empty array / specific error
     throw error;
+  }
+}
+
+export async function handleDeleteCustomerAction(customerId: string): Promise<{ success: boolean; message: string }> {
+  try {
+    await deleteCustomerFromSheet(customerId);
+    console.log(`Successfully deleted customer ${customerId}. Revalidating paths.`);
+    revalidatePath('/');
+    revalidatePath('/customers');
+    return { success: true, message: 'Customer and all associated transactions have been successfully deleted.' };
+  } catch (error: any) {
+    console.error(`Failed to delete customer ${customerId} via server action:`, error);
+    return { success: false, message: error.message || 'Failed to delete customer. Please try again.' };
   }
 }

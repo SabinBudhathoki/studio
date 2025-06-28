@@ -54,5 +54,15 @@
     "toggleLanguage": "भाषा बदल्नुहोस्",
     "english": "English",
     "nepali": "नेपाली (Nepali)",
-    "success": "सफलता"
+    "success": "सफलता",
+    "deleteCustomer": "ग्राहक मेटाउनुहोस्",
+    "areYouSure": "के तपाईं निश्चित हुनुहुन्छ?",
+    "deleteConfirmationWarning": "यो कार्य उल्टाउन सकिँदैन। यसले स्थायी रूपमा {{customerName}} र उनीहरूको सबै कारोबार इतिहास मेटाउनेछ।",
+    "typeToConfirm": "कृपया पुष्टि गर्न {{customerName}} टाइप गर्नुहोस्।",
+    "cancel": "रद्द गर्नुहोस्",
+    "deleting": "मेटाउँदै...",
+    "confirmDelete": "हो, ग्राहक मेटाउनुहोस्",
+    "dangerZone": "खतरा क्षेत्र",
+    "dangerZoneDescription": "यी कार्यहरू स्थायी छन् र उल्टाउन सकिँदैन।",
+    "customerDeletedSuccess": "{{customerName}} स्थायी रूपमा मेटाइएको छ।"
 }

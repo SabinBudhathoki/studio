@@ -2,24 +2,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import type { Customer, Transaction, NewTransaction, NewPayment } from '@/lib/types';
 import { calculateBalance } from '@/lib/mockData'; 
 import { TransactionForm } from '@/components/TransactionForm';
 import { PaymentForm } from '@/components/PaymentForm';
+import { DeleteCustomerDialog } from '@/components/DeleteCustomerDialog';
 import TransactionListItem from '@/components/TransactionListItem';
 import BackButton from '@/components/BackButton';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, User, Phone, MapPin, Wallet, ListChecks } from 'lucide-react';
+import { AlertTriangle, User, Phone, MapPin, Wallet, ListChecks, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { 
   handleAddTransactionAction, 
   handleAddPaymentAction,
   fetchCustomerDetailsAction,
-  fetchCustomerTransactionsAction
+  fetchCustomerTransactionsAction,
+  handleDeleteCustomerAction
 } from '@/actions/customerActions'; 
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from '@/context/LanguageContext';
@@ -27,6 +29,7 @@ import { useTranslation } from '@/context/LanguageContext';
 
 export default function CustomerDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -35,6 +38,7 @@ export default function CustomerDetailPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -83,6 +87,19 @@ export default function CustomerDetailPage() {
     } else {
       toast({ title: t('error'), description: result.message, variant: 'destructive' });
       throw new Error(result.message); 
+    }
+  };
+
+  const handleDeleteCustomer = async () => {
+    if (!customer) return;
+    setIsDeleting(true);
+    const result = await handleDeleteCustomerAction(id);
+    if (result.success) {
+        toast({ title: t('success'), description: t('customerDeletedSuccess', { customerName: customer.name }) });
+        router.push('/');
+    } else {
+        toast({ title: t('error'), description: result.message, variant: 'destructive' });
+        setIsDeleting(false); // only stop loading on error, on success we redirect
     }
   };
 
@@ -189,6 +206,26 @@ export default function CustomerDetailPage() {
           </Alert>
         )}
       </div>
+
+      <Card className="mt-10 border-destructive bg-destructive/5">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-3 text-destructive">
+                <AlertCircle className="h-6 w-6" />
+                {t('dangerZone')}
+            </CardTitle>
+            <CardDescription className="text-destructive/90 pt-2">
+                {t('dangerZoneDescription')}
+            </CardDescription>
+        </CardHeader>
+        <CardFooter>
+            <DeleteCustomerDialog
+                customerName={customer.name}
+                onConfirm={handleDeleteCustomer}
+                isDeleting={isDeleting}
+            />
+        </CardFooter>
+      </Card>
+
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {
   TRANSACTION_RANGE
 } from '@/lib/googleSheetClient';
 import { revalidatePath } from 'next/cache';
+import type { sheets_v4 } from 'googleapis';
 
 // Removed top-level: const sheets = getSheetsClient();
 
@@ -320,5 +321,104 @@ export async function addPaymentToSheetService(customerId: string, data: NewPaym
   } catch (error: any) {
     logSheetError('Adding Payment', error, { customerId: customerId, amount: data.amount, sheet: TRANSACTION_SHEET_NAME });
     throw new Error(`Failed to add payment. ${error.message || 'Check sheet permissions.'}`);
+  }
+}
+
+
+export async function deleteCustomerFromSheet(customerId: string): Promise<void> {
+  const sheets = await getSheetsClient();
+  if (!sheets) {
+    throw new Error('Google Sheets client could not be initialized. Verify configuration.');
+  }
+
+  try {
+    console.log(`Starting deletion process for customer ID: ${customerId}`);
+    
+    // 1. Get spreadsheet metadata to find sheet IDs
+    const spreadsheetMeta = await sheets.spreadsheets.get({
+        spreadsheetId: SPREADSHEET_ID,
+    });
+    
+    const customerSheetInfo = spreadsheetMeta.data.sheets?.find(s => s.properties?.title === CUSTOMER_SHEET_NAME);
+    const transactionSheetInfo = spreadsheetMeta.data.sheets?.find(s => s.properties?.title === TRANSACTION_SHEET_NAME);
+
+    if (!customerSheetInfo?.properties?.sheetId || !transactionSheetInfo?.properties?.sheetId) {
+        throw new Error('Could not find required sheet IDs for Customers or Transactions.');
+    }
+    const customerSheetId = customerSheetInfo.properties.sheetId;
+    const transactionSheetId = transactionSheetInfo.properties.sheetId;
+
+    // 2. Get all data from both sheets
+    const [customerData, transactionData] = await Promise.all([
+        sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: CUSTOMER_SHEET_NAME }),
+        sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: TRANSACTION_SHEET_NAME })
+    ]);
+
+    const customerRows = customerData.data.values || [];
+    const transactionRows = transactionData.data.values || [];
+
+    const requests: sheets_v4.Schema$Request[] = [];
+
+    // 3. Find customer row index to delete
+    // The row index is 0-based. We skip header (index 0).
+    const customerRowToDelete = customerRows.slice(1).findIndex(row => row[0] === customerId);
+    if (customerRowToDelete !== -1) {
+        // +1 to account for the sliced header row
+        const actualIndex = customerRowToDelete + 1;
+        requests.push({
+            deleteDimension: {
+                range: {
+                    sheetId: customerSheetId,
+                    dimension: 'ROWS',
+                    startIndex: actualIndex,
+                    endIndex: actualIndex + 1,
+                },
+            },
+        });
+        console.log(`Found customer at row ${actualIndex + 1}. Marked for deletion.`);
+    }
+
+    // 4. Find all transaction row indices to delete
+    transactionRows.slice(1).forEach((row, index) => {
+        if (row[1] === customerId) {
+            // +1 to account for the sliced header row
+            const actualIndex = index + 1;
+            requests.push({
+                deleteDimension: {
+                    range: {
+                        sheetId: transactionSheetId,
+                        dimension: 'ROWS',
+                        startIndex: actualIndex,
+                        endIndex: actualIndex + 1,
+                    },
+                },
+            });
+             console.log(`Found transaction for customer at row ${actualIndex + 1}. Marked for deletion.`);
+        }
+    });
+
+    if (requests.length > 0) {
+        // 5. Sort requests in descending order of startIndex to avoid index shifting issues
+        requests.sort((a, b) => {
+            const indexA = a.deleteDimension?.range?.startIndex ?? 0;
+            const indexB = b.deleteDimension?.range?.startIndex ?? 0;
+            return indexB - indexA;
+        });
+        
+        console.log(`Executing batch update with ${requests.length} deletion requests.`);
+        // 6. Execute batch update
+        await sheets.spreadsheets.batchUpdate({
+            spreadsheetId: SPREADSHEET_ID,
+            requestBody: {
+                requests,
+            },
+        });
+        console.log(`Successfully deleted customer ${customerId} and their transactions.`);
+    } else {
+        console.log(`No customer or transactions found for ID ${customerId}. Nothing to delete.`);
+    }
+  } catch (error: any) {
+    logSheetError('Deleting Customer', error, { customerId });
+    throw new Error(`Failed to delete customer ${customerId}. ${error.message || 'Check sheet permissions.'}`);
   }
 }
