@@ -1,5 +1,5 @@
 
-import { google } from 'googleapis';
+import { google, type sheets_v4 } from 'googleapis';
 import type { JWT } from 'google-auth-library';
 
 // Ensure dotenv is configured to load environment variables
@@ -38,7 +38,7 @@ if (CREDENTIALS_JSON_STRING) {
 
 
 // Make getSheetsClient async to await auth.getClient()
-export const getSheetsClient = async (): Promise<typeof google.sheets | null> => {
+export const getSheetsClient = async (): Promise<sheets_v4.Sheets | null> => {
   // Check if essential variables are present before attempting auth
   if (!SPREADSHEET_ID || !credentialsJson) {
      console.error("Cannot create Google Sheets client: Missing SPREADSHEET_ID or invalid/missing GOOGLE_SERVICE_ACCOUNT_CREDENTIALS.");
