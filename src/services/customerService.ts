@@ -27,60 +27,82 @@ function rowToCustomer(row: any[]): Customer | null {
   };
 }
 
-// Rewritten for reliability
+
 function rowToTransaction(row: any[]): Transaction | null {
   if (!row || row.length < 7) return null;
   // Columns: 0:TransactionID, 1:CustomerID, 2:ItemName, 3:Quantity, 4:Price, 5:Date, 6:Type, 7:Amount
 
-  const type = row[6] === 'payment' ? 'payment' : 'credit';
-  const transactionId = row[0];
+  const id = row[0];
   const customerId = row[1];
-  const date = row[5];
+  const type = row[6];
+  const dateValue = row[5];
 
-  // All transactions must have an ID, customer ID, and a date to be valid.
-  if (!transactionId || !customerId || !date) {
+  if (!id || !customerId || !type || !dateValue) {
+    return null; // A transaction must have these fields
+  }
+  
+  let date: Date;
+
+  // Google Sheets stores dates as serial numbers when using UNFORMATTED_VALUE.
+  // The number represents days since 1899-12-30.
+  if (typeof dateValue === 'number' && dateValue > 0) {
+    // Convert Excel/Sheets serial date to JS Date.
+    date = new Date((dateValue - 25569) * 86400 * 1000);
+  } else if (typeof dateValue === 'string') {
+    date = new Date(dateValue);
+  } else {
+    return null; // Invalid date format
+  }
+
+  // Final check to ensure we have a valid date object
+  if (isNaN(date.getTime())) {
+    console.warn(`Invalid date parsed for transaction ${id}. Original value: ${dateValue}`);
     return null;
   }
+  
+  const isoDateString = date.toISOString();
 
   if (type === 'credit') {
     const itemName = row[2];
-    const quantity = parseInt(row[3], 10);
+    const quantity = parseFloat(row[3]);
     const price = parseFloat(row[4]);
 
-    // A valid credit must have an item name, and valid numbers for quantity/price.
     if (!itemName || isNaN(quantity) || isNaN(price)) {
+      console.warn(`Skipping invalid credit transaction row: ${JSON.stringify(row)}`);
       return null;
     }
 
     return {
-      id: transactionId,
+      id: id,
       customerId: customerId,
       itemName: itemName,
       quantity: quantity,
       price: price,
-      date: date,
+      date: isoDateString,
       type: 'credit',
     };
-  } else { // type is 'payment'
+  } else if (type === 'payment') {
     const amount = parseFloat(row[7]);
-
-    // A valid payment must have a valid number for the amount.
     if (isNaN(amount)) {
+      console.warn(`Skipping invalid payment transaction row: ${JSON.stringify(row)}`);
       return null;
     }
 
     return {
-      id: transactionId,
+      id: id,
       customerId: customerId,
       itemName: 'Payment Received',
-      quantity: 1, // Default for payments
-      price: 0, // Default for payments
-      date: date,
+      quantity: 1,
+      price: 0,
+      date: isoDateString,
       type: 'payment',
       amount: amount,
     };
   }
+
+  return null; // Row is not a valid transaction type
 }
+
 
 
 // Helper function to log detailed errors
