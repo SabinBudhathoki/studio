@@ -27,7 +27,7 @@ export default function CustomerClientPage({ initialCustomers, overdueCustomers 
     return customers.filter(
       (customer) =>
         customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.phone.includes(searchTerm)
+        (customer.phone && customer.phone.includes(searchTerm))
     );
   }, [customers, searchTerm]);
 
