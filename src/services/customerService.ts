@@ -27,42 +27,59 @@ function rowToCustomer(row: any[]): Customer | null {
   };
 }
 
+// Rewritten for reliability
 function rowToTransaction(row: any[]): Transaction | null {
-  if (!row || row.length < 8) return null;
-  // TransactionID, CustomerID, ItemName, Quantity, Price, Date, Type, Amount
-  
-  // Robustly determine transaction type. If a valid amount exists in the amount column, it's a payment.
-  // Otherwise, it's a credit. This is more reliable than the 'Type' column string.
-  const rawAmount = row[7];
-  const isPayment = rawAmount !== '' && rawAmount != null && !isNaN(parseFloat(rawAmount));
-  const type = isPayment ? 'payment' : 'credit';
+  if (!row || row.length < 7) return null;
+  // Columns: 0:TransactionID, 1:CustomerID, 2:ItemName, 3:Quantity, 4:Price, 5:Date, 6:Type, 7:Amount
 
-  // Parse values based on the determined type
-  const quantity = type === 'credit' ? parseInt(row[3], 10) : 1;
-  const price = type === 'credit' ? parseFloat(row[4]) : 0;
-  const amount = type === 'payment' ? parseFloat(rawAmount) : undefined;
+  const type = row[6] === 'payment' ? 'payment' : 'credit';
+  const transactionId = row[0];
+  const customerId = row[1];
+  const date = row[5];
 
-  // Basic validation for parsed numbers
-  if (type === 'credit' && (isNaN(quantity) || isNaN(price))) {
-      console.warn(`Invalid numeric data for credit transaction ID ${row[0]}: Qty='${row[3]}', Price='${row[4]}'`);
-      return null; // Skip this transaction if credit data is invalid
+  // All transactions must have an ID, customer ID, and a date to be valid.
+  if (!transactionId || !customerId || !date) {
+    return null;
   }
-   if (type === 'payment' && isNaN(amount as number)) {
-       console.warn(`Invalid numeric data for payment transaction ID ${row[0]}: Amount='${row[7]}'`);
-       return null; // Skip this transaction if payment data is invalid
-   }
 
+  if (type === 'credit') {
+    const itemName = row[2];
+    const quantity = parseInt(row[3], 10);
+    const price = parseFloat(row[4]);
 
-  return {
-    id: row[0],
-    customerId: row[1],
-    itemName: row[2] || (type === 'payment' ? 'Payment Received' : ''), // ItemName or 'Payment Received'
-    quantity: quantity,
-    price: price,
-    date: row[5], // Assuming date is a string like 'YYYY-MM-DD'
-    type: type,
-    amount: amount,
-  };
+    // A valid credit must have an item name, and valid numbers for quantity/price.
+    if (!itemName || isNaN(quantity) || isNaN(price)) {
+      return null;
+    }
+
+    return {
+      id: transactionId,
+      customerId: customerId,
+      itemName: itemName,
+      quantity: quantity,
+      price: price,
+      date: date,
+      type: 'credit',
+    };
+  } else { // type is 'payment'
+    const amount = parseFloat(row[7]);
+
+    // A valid payment must have a valid number for the amount.
+    if (isNaN(amount)) {
+      return null;
+    }
+
+    return {
+      id: transactionId,
+      customerId: customerId,
+      itemName: 'Payment Received',
+      quantity: 1, // Default for payments
+      price: 0, // Default for payments
+      date: date,
+      type: 'payment',
+      amount: amount,
+    };
+  }
 }
 
 
@@ -436,3 +453,5 @@ export async function deleteCustomerFromSheet(customerId: string): Promise<void>
     throw new Error(`Failed to delete customer ${customerId}. ${error.message || 'Check sheet permissions.'}`);
   }
 }
+
+    
